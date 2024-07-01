@@ -76,6 +76,7 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         self,
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = "spatial",
+        var_names: Optional[Sequence[str]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -91,6 +92,13 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
             Key in :attr:`~anndata.AnnData.obs` where the slices are stored.
         spatial_key
             Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
+        var_names
+            Genes in :attr:`~anndata.AnnData.var_names` for the :term:`linear term`. Valid options are:
+
+            - :obj:`None` - use all genes shared between :attr:`adata_sp` and :attr:`adata_sc`.
+            - :class:`~typing.Sequence` - use a subset of genes.
+
+            See also the ``joint_attribute`` parameter.
         joint_attr
             How to get the data that defines the :term:`linear problem`:
 
@@ -143,8 +151,13 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         """
         self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
         self.batch_key = batch_key
+        self.filtered_vars = var_names
 
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        if self.filtered_vars is not None:
+            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        else:
+            xy = {}
+
         xy, x, y = handle_cost(
             xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
         )
