@@ -592,14 +592,14 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
             linear_cost_matrix = data[mask, :][:, mask_2]
             if sp.issparse(linear_cost_matrix):
                 logger.warning("Linear cost matrix being densified.")
-                linear_cost_matrix = linear_cost_matrix.A
+                linear_cost_matrix = linear_cost_matrix.toarray()
             return TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)
 
         if term in ("x", "y"):
             quad_cost_matrix = data[mask, :][:, mask]
             if sp.issparse(quad_cost_matrix):
                 logger.warning("Quadratic cost matrix being densified.")
-                quad_cost_matrix = quad_cost_matrix.A
+                quad_cost_matrix = quad_cost_matrix.toarray()
             return TaggedArray(quad_cost_matrix, tag=Tag.COST_MATRIX)
 
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")

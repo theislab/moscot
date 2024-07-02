@@ -186,7 +186,7 @@ class TestOTProblem:
         graph_to_set = pd.DataFrame(
             index=adata_concat.obs_names,
             columns=adata_concat.obs_names,
-            data=adata_concat.obsp["connectivities"].A.astype("float64"),
+            data=adata_concat.obsp["connectivities"].toarray().astype("float64"),
         )
 
         prob1 = OTProblem(adata_x, adata_y)
@@ -231,14 +231,14 @@ class TestOTProblem:
         graph_to_set_x = pd.DataFrame(
             index=adata_x.obs_names,
             columns=adata_x.obs_names,
-            data=adata_x.obsp["connectivities"].A.astype("float64"),
+            data=adata_x.obsp["connectivities"].toarray().astype("float64"),
         )
 
         sc.pp.neighbors(adata_y, n_neighbors=15)
         graph_to_set_y = pd.DataFrame(
             index=adata_y.obs_names,
             columns=adata_y.obs_names,
-            data=adata_y.obsp["connectivities"].A.astype("float64"),
+            data=adata_y.obsp["connectivities"].toarray().astype("float64"),
         )
 
         prob1 = OTProblem(adata_x, adata_y)
@@ -304,7 +304,7 @@ class TestOTProblem:
         graph_to_set = pd.DataFrame(
             index=adata_concat.obs_names,
             columns=adata_concat.obs_names,
-            data=adata_concat.obsp["connectivities"].A.astype("float64"),
+            data=adata_concat.obsp["connectivities"].toarray().astype("float64"),
         )
 
         prob0 = OTProblem(adata_x, adata_y)

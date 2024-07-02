@@ -19,15 +19,15 @@ class TestMoscotPl:
         adata1, adata2 = _input_to_adatas(p)
         assert isinstance(adata1, AnnData)
         assert isinstance(adata2, AnnData)
-        np.testing.assert_array_equal(adata1.X.A, adata_time.X.A)
-        np.testing.assert_array_equal(adata2.X.A, adata_time.X.A)
+        np.testing.assert_array_equal(adata1.X.toarray(), adata_time.X.toarray())
+        np.testing.assert_array_equal(adata2.X.toarray(), adata_time.X.toarray())
 
     def test_input_to_adatas_adata(self, adata_time: AnnData):
         adata1, adata2 = _input_to_adatas(adata_time)
         assert isinstance(adata1, AnnData)
         assert isinstance(adata2, AnnData)
-        np.testing.assert_array_equal(adata1.X.A, adata_time.X.A)
-        np.testing.assert_array_equal(adata2.X.A, adata_time.X.A)
+        np.testing.assert_array_equal(adata1.X.toarray(), adata_time.X.toarray())
+        np.testing.assert_array_equal(adata2.X.toarray(), adata_time.X.toarray())
 
     @pytest.mark.parametrize("return_fig", [True, False])
     def test_cell_transition(self, adata_pl_cell_transition: AnnData, return_fig: bool):
