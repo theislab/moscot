@@ -551,17 +551,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             adata: AnnData,
             attr: Optional[Dict[str, Any]] = None,
         ) -> ArrayLike:
-            if attr is None:
-                return adata.X
+            attr = {"attr": "X"} if attr is None else attr
+            att = attr.get("attr", None)
+            key = attr.get("key", None)
 
-            main_attr, key = next(iter(attr.items()))
-
-            if hasattr(adata, main_attr):
-                attr_data = getattr(adata, main_attr)
-                if key in attr_data:
-                    return attr_data[key]
-
-            raise ValueError(f"Attribute {attr} not found in AnnData object.")
+            if key is not None:
+                return getattr(adata, att)[key]
+            return getattr(adata, att)
 
         if self.batch_key is None:
             spatial = self.adata.obsm[self.spatial_key]
