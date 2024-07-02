@@ -398,7 +398,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         corr_method: Literal["pearson", "spearman"] = "pearson",
         device: Optional[Device_t] = None,
         groupby: Optional[str] = None,
-    ) -> Mapping[Any, Mapping[Tuple[K, K], pd.Series]]:
+    ) -> Union[Mapping[Tuple[K, K], Mapping[Any, pd.Series]], Mapping[Tuple[K, K], pd.Series]]:
         """Correlate true and predicted gene expression.
 
         .. warning::
