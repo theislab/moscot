@@ -44,6 +44,9 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
+    def copy(self) -> "SinkhornProblem[K, B]":
+        return super().copy()  # type: ignore
+
     def prepare(
         self,
         key: str,
@@ -259,6 +262,9 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
+
+    def copy(self) -> "GWProblem[K, B]":
+        return super().copy()  # type: ignore
 
     def prepare(
         self,
@@ -476,6 +482,9 @@ class FGWProblem(GWProblem[K, B]):
     kwargs
         Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
+
+    def copy(self) -> "FGWProblem[K, B]":
+        return super().copy()  # type: ignore
 
     def prepare(
         self,

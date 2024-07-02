@@ -1,4 +1,5 @@
 import collections
+import copy
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -39,6 +40,20 @@ class ProblemManager(Generic[K, B]):
         self._compound_problem = compound_problem
         self._policy = policy
         self._problems: Dict[Tuple[K, K], B] = {}
+
+    def copy(self) -> "ProblemManager[K, B]":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint.
+
+        Returns
+        -------
+        Copy of Self
+        """
+        if self._compound_problem.stage == "solved":
+            raise copy.Error("Cannot copy problem that has already been solved.")
+        return copy.deepcopy(self)
 
     def add_problem(
         self, key: Tuple[K, K], problem: B, *, overwrite: bool = False, verify_integrity: bool = True

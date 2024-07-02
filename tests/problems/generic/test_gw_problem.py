@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Literal, Mapping
 
 import pytest
@@ -24,6 +25,7 @@ from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
 from tests._utils import _assert_marginals_set
+from tests.problems._utils import check_is_copy_multiple
 from tests.problems.conftest import (
     geometry_args,
     gw_args_1,
@@ -359,3 +361,31 @@ class TestGWProblem:
 
         assert solver.warm_start == warm_start
         assert solver.store_inner_errors == inner_errors
+
+    def test_copy(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
+        shallow_copy = ("_adata",)
+
+        eps = 0.5
+
+        prepare_params = {
+            "key": "batch",
+            "policy": "sequential",
+            "x_attr": {"attr": "obsm", "key": "spatial"},
+            "y_attr": {"attr": "obsm", "key": "spatial"},
+        }
+        solve_params = {"epsilon": eps}
+
+        prob = GWProblem(adata=adata_space_rotate)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()
