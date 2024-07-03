@@ -1,3 +1,4 @@
+import sys
 from typing import Tuple
 
 import pytest
@@ -235,6 +236,7 @@ class TestTemporalMixin:
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
 
+    @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python3.9 or higher")
     def test_compute_interpolated_distance_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
         key = config["key"]
@@ -262,6 +264,7 @@ class TestTemporalMixin:
             interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], rtol=1e-6, atol=1e-6
         )
 
+    @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python3.9 or higher")
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
         key = config["key"]
@@ -313,6 +316,7 @@ class TestTemporalMixin:
         assert isinstance(result, float)
         np.testing.assert_allclose(result, gt_temporal_adata.uns["batch_distances_10"], rtol=1e-5)
 
+    @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python3.9 or higher")
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
         key = config["key"]

@@ -36,10 +36,6 @@ OttCostFn_t = Literal[
     "pnorm_p",
     "sq_pnorm",
     "cosine",
-    "elastic_l1",
-    "elastic_l2",
-    "elastic_stvs",
-    "elastic_sqk_overlap",
     "geodesic",
 ]
 OttCostFnMap_t = Union[OttCostFn_t, Mapping[Literal["xy", "x", "y"], OttCostFn_t]]
