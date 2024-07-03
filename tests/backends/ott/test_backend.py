@@ -68,9 +68,7 @@ class TestSinkhorn:
         np.testing.assert_allclose(solver._problem.geom.cost_matrix, problem.geom.cost_matrix, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
-    @pytest.mark.parametrize(
-        ("rank", "cost_fn"), [(2, costs.Euclidean()), (3, costs.SqPNorm(p=1.5))]
-    )
+    @pytest.mark.parametrize(("rank", "cost_fn"), [(2, costs.Euclidean()), (3, costs.SqPNorm(p=1.5))])
     def test_geometry_rank(self, x: Geom_t, rank: int, cost_fn: costs.CostFn):
         eps = 0.05
         geom = PointCloud(x, epsilon=eps, cost_fn=cost_fn).to_LRCGeometry(rank=rank)

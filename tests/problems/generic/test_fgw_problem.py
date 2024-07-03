@@ -5,13 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from ott.geometry import epsilon_scheduler
-from ott.geometry.costs import (
-    Cosine,
-    Euclidean,
-    PNormP,
-    SqEuclidean,
-    SqPNorm,
-)
+from ott.geometry.costs import Cosine, Euclidean, PNormP, SqEuclidean, SqPNorm
 from ott.solvers.linear import acceleration
 
 from anndata import AnnData
