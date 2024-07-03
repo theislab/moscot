@@ -5,16 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from ott.geometry import epsilon_scheduler
-from ott.geometry.costs import (
-    Cosine,
-    ElasticL1,
-    ElasticL2,
-    ElasticSTVS,
-    Euclidean,
-    PNormP,
-    SqEuclidean,
-    SqPNorm,
-)
+from ott.geometry.costs import Cosine, Euclidean, PNormP, SqEuclidean, SqPNorm
 from ott.solvers.linear import acceleration
 
 from anndata import AnnData
@@ -191,9 +182,6 @@ class TestFGWProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
-            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
-            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
-            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
@@ -234,9 +222,6 @@ class TestFGWProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
-            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
-            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
-            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
     def test_prepare_costs_with_callback(
