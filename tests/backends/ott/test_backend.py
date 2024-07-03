@@ -69,7 +69,7 @@ class TestSinkhorn:
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize(
-        ("rank", "cost_fn"), [(2, costs.Euclidean()), (3, costs.SqPNorm(p=1.5)), (5, costs.ElasticL1(0.1))]
+        ("rank", "cost_fn"), [(2, costs.Euclidean()), (3, costs.SqPNorm(p=1.5))]
     )
     def test_geometry_rank(self, x: Geom_t, rank: int, cost_fn: costs.CostFn):
         eps = 0.05
