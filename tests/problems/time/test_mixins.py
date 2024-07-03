@@ -248,7 +248,6 @@ class TestTemporalMixin:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            scale_cost="mean",
             xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
@@ -277,7 +276,6 @@ class TestTemporalMixin:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            scale_cost="mean",
             xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
@@ -307,7 +305,6 @@ class TestTemporalMixin:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            scale_cost="mean",
             xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
@@ -331,7 +328,6 @@ class TestTemporalMixin:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            scale_cost="mean",
             xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}

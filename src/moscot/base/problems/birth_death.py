@@ -1,3 +1,4 @@
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -166,7 +167,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
         scaling: Optional[float] = None,
-        **kwargs: Any,
+        beta_max: float = 1.7,
+        beta_min: float = 0.3,
+        beta_center: float = 0.25,
+        beta_width: float = 0.5,
+        delta_max: float = 1.7,
+        delta_min: float = 0.3,
+        delta_center: float = 0.1,
+        delta_width: float = 0.2,
     ) -> ArrayLike:
         """Estimate the source or target :term:`marginals` based on marker genes, either with the
         `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_,
@@ -189,9 +197,22 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             If :obj:`float` is passed, it will be used as a scaling parameter in an exponential kernel
             with proliferation and apoptosis scores.
             If :obj:`None`, parameters corresponding to the birth and death processes will be used.
-        kwargs
-            Keyword arguments for :func:`~moscot.base.problems.birth_death.beta` and
-            :func:`~moscot.base.problems.birth_death.delta`.
+        beta_max
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        beta_min
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        beta_center
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        beta_width
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        delta_max
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
+        delta_min
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
+        delta_center
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
+        delta_width
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
 
         Returns
         -------
@@ -223,12 +244,18 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.apoptosis_key = apoptosis_key
 
         if scaling:
-            beta_fn = delta_fn = lambda x, *_, **__: x
+            beta_fn = delta_fn = lambda x: x
         else:
-            beta_fn, delta_fn = beta, delta
+            beta_fn = partial(
+                beta, beta_max=beta_max, beta_min=beta_min, beta_center=beta_center, beta_width=beta_width
+            )
+            delta_fn = partial(
+                delta, delta_max=delta_max, delta_min=delta_min, delta_center=delta_center, delta_width=delta_width
+            )
+
             scaling = 1.0
-        birth = estimate(proliferation_key, fn=beta_fn, **kwargs)
-        death = estimate(apoptosis_key, fn=delta_fn, **kwargs)
+        birth = estimate(proliferation_key, fn=beta_fn)
+        death = estimate(apoptosis_key, fn=delta_fn)
 
         prior_growth = np.exp((birth - death) * self.delta / scaling)
 
@@ -287,7 +314,6 @@ def beta(
     beta_min: float = 0.3,
     beta_center: float = 0.25,
     beta_width: float = 0.5,
-    **_: Any,
 ) -> ArrayLike:
     """Birth process."""
     return _gen_logistic(p, beta_max, beta_min, beta_center, beta_width)
@@ -299,7 +325,6 @@ def delta(
     delta_min: float = 0.3,
     delta_center: float = 0.1,
     delta_width: float = 0.2,
-    **_: Any,
 ) -> ArrayLike:
     """Death process."""
     return _gen_logistic(a, delta_max, delta_min, delta_center, delta_width)
