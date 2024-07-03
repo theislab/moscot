@@ -16,6 +16,7 @@ from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import MappingProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import _adata_spatial_split
+from tests.problems._utils import check_is_copy_multiple
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -266,3 +267,20 @@ class TestMappingProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    def test_copy(self, adata_mapping: AnnData):
+        shallow_copy = ("_adata", "_adata_sc")
+
+        prepare_params = {"batch_key": "batch", "sc_attr": {"attr": "X"}}
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+
+        prob = MappingProblem(adataref, adatasp)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)

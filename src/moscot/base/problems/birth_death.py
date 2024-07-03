@@ -1,3 +1,4 @@
+import copy
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -158,6 +159,20 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
     kwargs
         Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
     """  # noqa: D205
+
+    def copy(self) -> "BirthDeathProblem":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint.
+
+        Returns
+        -------
+        Copy of Self
+        """
+        if self.stage == "solved":
+            raise copy.Error("Cannot copy problem that has already been solved.")
+        return copy.deepcopy(self)
 
     def estimate_marginals(
         self,  # type: BirthDeathProblemProtocol
