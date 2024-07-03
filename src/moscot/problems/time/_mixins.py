@@ -1032,6 +1032,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             return
         if key not in self.adata.obs:
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
+        self.adata.obs[key] = self.adata.obs[key].astype("category")
         col = self.adata.obs[key]
         if not (is_categorical_dtype(col) and is_numeric_dtype(col.cat.categories)):
             raise TypeError(
