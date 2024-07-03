@@ -25,7 +25,7 @@ class TestBirthDeathProblem:
             a=True,
             b=True,
             marginal_kwargs={
-                "profileration_key": "proliferation",
+                "proliferation_key": "proliferation",
                 "apoptosis_key": "apoptosis",
             },
         )
@@ -90,7 +90,7 @@ class TestBirthDeathProblem:
             a=True,
             b=True,
             marginal_kwargs={
-                "profileration_key": "proliferation",
+                "proliferation_key": "proliferation",
             },
         )
         assert prob.delta == (t2 - t1)
@@ -109,7 +109,7 @@ class TestBirthDeathProblem:
             y={"attr": "X"},
             a=True,
             b=True,
-            marginal_kwargs={"profileration_key": "proliferation"},
+            marginal_kwargs={"proliferation_key": "proliferation"},
         )
         prob = prob.solve(max_iterations=10)
         assert prob.delta == (t2 - t1)
@@ -134,7 +134,7 @@ class TestBirthDeathProblem:
             a=True,
             b=True,
             marginal_kwargs={
-                "profileration_key": "proliferation",
+                "proliferation_key": "proliferation",
                 "apoptosis_key": "apoptosis",
             },
         )
@@ -147,7 +147,7 @@ class TestBirthDeathProblem:
             a=True,
             b=True,
             marginal_kwargs={
-                "profileration_key": "proliferation",
+                "proliferation_key": "proliferation",
                 "apoptosis_key": "apoptosis",
                 **marginal_kwargs,
             },
