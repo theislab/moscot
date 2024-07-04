@@ -146,7 +146,7 @@ class TestAlignmentProblem:
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp[key].A.astype("float64"),
+                    data=adata_subset.obsp[key].toarray().astype("float64"),
                 )
                 if dense_input
                 else (

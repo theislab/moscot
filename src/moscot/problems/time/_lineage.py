@@ -1,5 +1,5 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -16,7 +16,7 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.base.problems.compound_problem import B, CompoundProblem
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.time._mixins import TemporalMixin
 
@@ -49,7 +49,17 @@ class TemporalProblem(  # type: ignore[misc]
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        subset: Optional[Sequence[Tuple[Numeric_t, Numeric_t]]] = None,
+        reference: Optional[Any] = None,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "TemporalProblem":
         """Prepare the temporal problem problem.
 
@@ -109,8 +119,6 @@ class TemporalProblem(  # type: ignore[misc]
             Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
             It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
             see :meth:`score_genes_for_marginals` for more information.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -123,11 +131,23 @@ class TemporalProblem(  # type: ignore[misc]
         - :attr:`problem_kind` - set to ``'linear'``.
         """
         self.temporal_key = time_key
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         xy, x, y = handle_cost(
-            xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            xy_callback=xy_callback,
+            x_callback=x_callback,
+            y_callback=y_callback,
         )
         marginal_kwargs = dict(marginal_kwargs)
+        if self.apoptosis_key is not None:
+            marginal_kwargs["apoptosis_key"] = self.apoptosis_key
+        if self.proliferation_key is not None:
+            marginal_kwargs["proliferation_key"] = self.proliferation_key
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
@@ -138,11 +158,17 @@ class TemporalProblem(  # type: ignore[misc]
             x=x,
             y=y,
             policy=policy,
-            cost=None,  # cost information is already stored in x,y,xy
             marginal_kwargs=marginal_kwargs,
             a=a,
             b=b,
-            **kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            reference=reference,
+            subset=subset,
         )
 
     def solve(
@@ -278,7 +304,17 @@ class LineageProblem(TemporalProblem):
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        subset: Optional[Sequence[Tuple[Numeric_t, Numeric_t]]] = None,
+        reference: Optional[Any] = None,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "LineageProblem":
         """Prepare the lineage problem problem.
 
@@ -350,8 +386,6 @@ class LineageProblem(TemporalProblem):
             Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
             It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
             see :meth:`score_genes_for_marginals` for more information.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -367,8 +401,17 @@ class LineageProblem(TemporalProblem):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
         x = y = lineage_attr
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,  # type: ignore[arg-type]
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+        )
 
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
@@ -390,7 +433,14 @@ class LineageProblem(TemporalProblem):
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,
-            **kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            reference=reference,
+            subset=subset,
         )
 
     def solve(
