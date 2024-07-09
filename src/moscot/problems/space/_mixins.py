@@ -454,7 +454,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             # initialize a dict of group masks
             if groupby:
                 groups = adata_sp.obs[groupby].cat.categories
-                group_masks = {group: adata_sp.obs[groupby] == group for group in groups}
+                group_masks = {group: (adata_sp.obs[groupby]).values == group for group in groups}
                 corrs[key] = {}
             else:
                 group_masks = {"all": np.ones(adata_sp.shape[0], dtype=bool)}
@@ -472,6 +472,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                     logger.debug(f"Skipping `group={group}` as it contains less then 2 samples.")
                     continue
 
+                # import pdb; pdb.set_trace()
                 corr_val = [
                     corr(gexp_pred_sp[group_mask, gi], gexp_sp[group_mask, gi])[0] for gi, _ in enumerate(var_sc)
                 ]
