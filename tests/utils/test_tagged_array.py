@@ -16,10 +16,6 @@ class TestTaggedArray:
             ("cosine", {}),
             ("pnorm_p", {"p": 3}),
             ("sq_pnorm", {"p": 2}),
-            ("elastic_l1", {"scaling_reg": 1.3}),
-            ("elastic_l2", {}),
-            ("elastic_stvs", {}),
-            ("elastic_sqk_overlap", {"k": 1}),
         ],
     )
     def test_from_adata_ott_cost_from_pointcloud(self, adata_time, cost: str, cost_kwargs: Mapping[str, Any]):

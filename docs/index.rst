@@ -61,6 +61,7 @@ well as the publication introducing the model, which can be found in the corresp
     :hidden:
 
     installation
+    user_guide
     user
     developer
     contributing
