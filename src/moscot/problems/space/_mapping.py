@@ -238,8 +238,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         min_iterations: Optional[int] = None,
         max_iterations: Optional[int] = None,
         threshold: float = 1e-3,
-        lse_mode: bool = True,
-        inner_iterations: int = 10,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
@@ -291,12 +289,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         threshold
             Convergence threshold of the :term:`GW <Gromov-Wasserstein>` or the :term:`Sinkhorn` algorithm,
             depending on :attr:`alpha`.
-        lse_mode
-            Whether to use `log-sum-exp (LSE)
-            <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
-            computations for numerical stability. Only used when :attr:`alpha` = 0.
-        inner_iterations
-            Compute the convergence criterion every ``inner_iterations``. Only used when :attr:`alpha` = 0.
         linear_solver_kwargs
             Keyword arguments for the inner :term:`linear problem` solver. Only used when :attr:`alpha` > 0.
         device
@@ -331,14 +323,15 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         )
 
         if alpha == 0.0:
+            logger.info("Ignoring quadratic terms for `alpha=0`, solving a linear problem.")
             for _, value in self.problems.items():
                 value._x = None
                 value._y = None
                 value._problem_kind = "linear"
-                logger.info("Ignoring quadratic terms for `alpha=0`, solving a linear problem.")
-
-            solve_kwargs["lse_mode"] = lse_mode
-            solve_kwargs["inner_iterations"] = inner_iterations
+            if "lse_mode" in linear_solver_kwargs:
+                solve_kwargs["lse_mode"] = linear_solver_kwargs["lse_mode"]
+            if "inner_iterations" in linear_solver_kwargs:
+                solve_kwargs["inner_iterations"] = linear_solver_kwargs["inner_iterations"]
         else:
             solve_kwargs["alpha"] = alpha
             solve_kwargs["linear_solver_kwargs"] = linear_solver_kwargs
