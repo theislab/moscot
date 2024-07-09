@@ -4,6 +4,7 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 from anndata import AnnData
 
 from moscot import _constants
+from moscot._logging import logger
 from moscot._types import (
     ArrayLike,
     CostKwargs_t,
@@ -12,6 +13,7 @@ from moscot._types import (
     ProblemStage_t,
     QuadInitializer_t,
     ScaleCost_t,
+    SinkhornInitializer_t,
 )
 from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
@@ -230,12 +232,14 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         scale_cost: ScaleCost_t = "mean",
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: QuadInitializer_t = None,
+        initializer: Union[QuadInitializer_t, SinkhornInitializer_t] = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: Optional[int] = None,
         max_iterations: Optional[int] = None,
         threshold: float = 1e-3,
+        lse_mode: bool = True,
+        inner_iterations: int = 10,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
@@ -261,8 +265,8 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
             on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
         rank
-            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
-            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a,scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`cuturi:2013,peyre:2016` is used.
         scale_cost
             How to re-scale the cost matrices. If a :class:`float`, the cost matrices
             will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
@@ -279,13 +283,22 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         jit
             Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         min_iterations
-            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` or :term:`Sinkhorn` iterations,
+            depending on :attr:`alpha`.
         max_iterations
-            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` or :term:`Sinkhorn` iterations,
+            depending on :attr:`alpha`.
         threshold
-            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` or the :term:`Sinkhorn` algorithm,
+            depending on :attr:`alpha`.
+        lse_mode
+            Whether to use `log-sum-exp (LSE)
+            <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
+            computations for numerical stability. Only used when :attr:`alpha` = 0.
+        inner_iterations
+            Compute the convergence criterion every ``inner_iterations``. Only used when :attr:`alpha` = 0.
         linear_solver_kwargs
-            Keyword arguments for the inner :term:`linear problem` solver.
+            Keyword arguments for the inner :term:`linear problem` solver. Only used when :attr:`alpha` > 0.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
@@ -299,8 +312,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
-        return super().solve(  # type: ignore[return-value]
-            alpha=alpha,
+        solve_kwargs = dict(
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -314,9 +326,25 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
+        )
+
+        if alpha == 0.0:
+            for _, value in self.problems.items():
+                value._x = None
+                value._y = None
+                value._problem_kind = "linear"
+                logger.info("Ignoring quadratic terms for `alpha=0`, solving a linear problem.")
+
+            solve_kwargs["lse_mode"] = lse_mode
+            solve_kwargs["inner_iterations"] = inner_iterations
+        else:
+            solve_kwargs["alpha"] = alpha
+            solve_kwargs["linear_solver_kwargs"] = linear_solver_kwargs
+
+        return super().solve(  # type: ignore[return-value]
+            **solve_kwargs,
         )
 
     @property
