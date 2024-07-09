@@ -398,7 +398,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         corr_method: Literal["pearson", "spearman"] = "pearson",
         device: Optional[Device_t] = None,
         groupby: Optional[str] = None,
-    ) -> Mapping[Any, Mapping[Tuple[K, K], pd.Series]]:
+    ) -> Union[Mapping[Tuple[K, K], Mapping[Any, pd.Series]], Mapping[Tuple[K, K], pd.Series]]:
         """Correlate true and predicted gene expression.
 
         .. warning::
@@ -464,7 +464,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 gexp_sp = gexp_sp.toarray()
 
             # predict spatial feature expression
-            gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
+            gexp_pred_sp = val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
 
             # loop over groups and compute correlations
             for group, group_mask in group_masks.items():
