@@ -323,7 +323,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         )
 
         if alpha == 0.0:
-            logger.info("Ignoring quadratic terms for `alpha=0`, solving a linear problem.")
+            logger.info("Ignoring quadratic terms for `alpha=0`, solving a :term:`linear problem`.")
             for _, value in self.problems.items():
                 value._x = None
                 value._y = None

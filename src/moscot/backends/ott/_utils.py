@@ -63,9 +63,9 @@ def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: 
 
 def alpha_to_fused_penalty(alpha: float) -> float:
     """Convert."""
-    if not (0 <= alpha <= 1):
-        raise ValueError(f"Expected `alpha` to be in interval `[0, 1]`, found `{alpha}`.")
-    return (1 - alpha) / alpha if alpha != 0 else 0
+    if not (0 < alpha <= 1):
+        raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
+    return (1 - alpha) / alpha
 
 
 def densify(arr: ArrayLike) -> jax.Array:
