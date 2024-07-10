@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Literal, Mapping, Optional
+from typing import Any, List, Literal, Mapping, Optional, Union
 
 import pytest
 
@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler
+from ott.solvers.linear.sinkhorn import SinkhornOutput
+from ott.solvers.quadratic.gromov_wasserstein import GWOutput
 
 import anndata as ad
 import scanpy as sc
@@ -266,3 +268,34 @@ class TestMappingProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    @pytest.mark.parametrize(
+        ("sc_attr", "spatial_key", "alpha", "problem_kind", "solution_kind"),
+        [
+            (None, None, None, "linear", SinkhornOutput),
+            ({"attr": "X"}, "spatial", 0, "quadratic", SinkhornOutput),
+            ({"attr": "X"}, "spatial", 0.5, "quadratic", GWOutput),
+        ],
+    )
+    def test_problem_type(
+        self,
+        adata_mapping: AnnData,
+        sc_attr: Optional[Mapping[str, str]],
+        spatial_key: Optional[str],
+        alpha: Optional[float],
+        problem_kind: Literal["linear", "quadratic"],
+        solution_kind: Union[SinkhornOutput, GWOutput],
+    ):
+        # initialize and prepare the MappingProblem
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, spatial_key=spatial_key)
+
+        # check if the problem type is set correctly after `prepare`
+        for prob in mp.problems.values():
+            assert prob.problem_kind == problem_kind
+
+        # check if the problem type is set correctly after `solve`
+        mp.solve(alpha=alpha)
+        for sol in mp.solutions.values():
+            assert isinstance(sol, solution_kind)

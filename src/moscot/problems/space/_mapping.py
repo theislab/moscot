@@ -335,8 +335,9 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         }
 
         # convert problem type to linear for alpha=0
-        if alpha == 0 and self.problem_kind != "linear":
+        if alpha == 0.0 and self.problem_kind != "linear":
             logger.info("Ignoring quadratic terms for :attr:`alpha=0`.")
+            self._problem_kind = "linear"
             for _, value in self.problems.items():
                 value._x = None
                 value._y = None
