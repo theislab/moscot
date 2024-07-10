@@ -74,9 +74,9 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
 
     def prepare(
         self,
-        sc_attr: Union[str, Mapping[str, Any]],
+        sc_attr: Optional[Union[str, Mapping[str, Any]]],
         batch_key: Optional[str] = None,
-        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
+        spatial_key: Optional[Union[str, Mapping[str, Any]]] = "spatial",
         var_names: Optional[Sequence[str]] = None,
         normalize_spatial: bool = True,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
@@ -176,18 +176,21 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
-        y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
-
-        if normalize_spatial and x_callback is None:
-            x_callback = "spatial-norm"
-            if not len(x_callback_kwargs):
-                x_callback_kwargs = x
-        if isinstance(x_callback, str) and x_callback in "spatial-norm":
+        if spatial_key:
+            x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
+            if normalize_spatial and x_callback is None:
+                x_callback = "spatial-norm"
+                if not len(x_callback_kwargs):
+                    x_callback_kwargs = x
+            if isinstance(x_callback, str) and x_callback in "spatial-norm":
+                x = {}
+            self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
+        else:
             x = {}
 
+        y = ({"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr) if sc_attr else {}
+
         self.batch_key = batch_key
-        self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
         self.filtered_vars = var_names
 
         if self.filtered_vars is not None:
