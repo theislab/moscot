@@ -174,10 +174,13 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
-        - :attr:`problem_kind` - set to ``'quadratic'``.
+        - :attr:`problem_kind` - set to ``'quadratic'`` (if both ``spatial_key`` and ``sc_attr`` are passed)
+            or ``'linear'`` (if both ``spatial_key`` and ``sc_attr`` are `None`).
         """
-        if spatial_key:
+        if spatial_key and sc_attr:
             x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
+            y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
+
             if normalize_spatial and x_callback is None:
                 x_callback = "spatial-norm"
                 if not len(x_callback_kwargs):
@@ -185,10 +188,16 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             if isinstance(x_callback, str) and x_callback in "spatial-norm":
                 x = {}
             self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
-        else:
+            logger.info("Preparing a :term:`quadratic problem`.")
+        elif spatial_key is None and sc_attr is None:
             x = {}
-
-        y = ({"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr) if sc_attr else {}
+            y = {}
+            logger.info("Preparing a :term:`linear problem`.")
+        else:
+            raise ValueError(
+                "You either need to set both attr:`spatial_key` and attr:`sc_attr` (for a :term:`quadratic problem`)",
+                "or none of them (for a term:`linear problem`).",
+            )
 
         self.batch_key = batch_key
         self.filtered_vars = var_names
@@ -307,26 +316,26 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
-        solve_kwargs = dict(
-            epsilon=epsilon,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            rank=rank,
-            scale_cost=scale_cost,
-            batch_size=batch_size,
-            stage=stage,
-            initializer=initializer,
-            initializer_kwargs=initializer_kwargs,
-            jit=jit,
-            min_iterations=min_iterations,
-            max_iterations=max_iterations,
-            threshold=threshold,
-            device=device,
+        solve_kwargs = {
+            "epsilon": epsilon,
+            "tau_a": tau_a,
+            "tau_b": tau_b,
+            "rank": rank,
+            "scale_cost": scale_cost,
+            "batch_size": batch_size,
+            "stage": stage,
+            "initializer": initializer,
+            "initializer_kwargs": initializer_kwargs,
+            "jit": jit,
+            "min_iterations": min_iterations,
+            "max_iterations": max_iterations,
+            "threshold": threshold,
+            "device": device,
             **kwargs,
-        )
+        }
 
-        if alpha == 0.0:
-            logger.info("Ignoring quadratic terms for `alpha=0`, solving a :term:`linear problem`.")
+        if alpha == 0.0 or self.problem_kind == "linear":
+            logger.info("Ignoring quadratic terms for :attr:`alpha=0` and for `'linear'` problems.")
             for _, value in self.problems.items():
                 value._x = None
                 value._y = None
