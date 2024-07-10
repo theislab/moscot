@@ -334,17 +334,25 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             **kwargs,
         }
 
-        if alpha == 0.0 or self.problem_kind == "linear":
-            logger.info("Ignoring quadratic terms for :attr:`alpha=0` and for `'linear'` problems.")
+        # convert problem type to linear for alpha=0
+        if alpha == 0 and self.problem_kind != "linear":
+            logger.info("Ignoring quadratic terms for :attr:`alpha=0`.")
             for _, value in self.problems.items():
                 value._x = None
                 value._y = None
                 value._problem_kind = "linear"
+
+        # prepare solver kwargs, depending on the problem type
+        if self.problem_kind == "linear":
+            if alpha is not None and alpha > 0:
+                logger.warning("Ignoring :attr:`alpha` for `'linear'` problems.")
             if "lse_mode" in linear_solver_kwargs:
                 solve_kwargs["lse_mode"] = linear_solver_kwargs["lse_mode"]
             if "inner_iterations" in linear_solver_kwargs:
                 solve_kwargs["inner_iterations"] = linear_solver_kwargs["inner_iterations"]
         else:
+            if alpha is None:
+                raise ValueError("Expected :attr:`alpha` to be in interval `[0, 1]`, found `None`.")
             solve_kwargs["alpha"] = alpha
             solve_kwargs["linear_solver_kwargs"] = linear_solver_kwargs
 
