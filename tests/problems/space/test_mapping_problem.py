@@ -273,7 +273,7 @@ class TestMappingProblem:
         ("sc_attr", "spatial_key", "alpha", "problem_kind", "solution_kind"),
         [
             (None, None, None, "linear", SinkhornOutput),
-            ({"attr": "X"}, "spatial", 0, "quadratic", SinkhornOutput),
+            ({"attr": "X"}, "spatial", 0.0, "quadratic", SinkhornOutput),
             ({"attr": "X"}, "spatial", 0.5, "quadratic", GWOutput),
         ],
     )
@@ -298,4 +298,4 @@ class TestMappingProblem:
         # check if the problem type is set correctly after `solve`
         mp.solve(alpha=alpha)
         for sol in mp.solutions.values():
-            assert isinstance(sol, solution_kind)
+            assert isinstance(sol._output, solution_kind)
