@@ -269,6 +269,7 @@ class TestMappingProblem:
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
 
+    @pytest.mark.parametrize("var_names", [None, [str(i) for i in range(20)]])
     @pytest.mark.parametrize(
         ("sc_attr", "spatial_key", "alpha", "problem_kind", "solution_kind"),
         [
@@ -280,6 +281,7 @@ class TestMappingProblem:
     def test_problem_type(
         self,
         adata_mapping: AnnData,
+        var_names: Optional[List[str]],
         sc_attr: Optional[Mapping[str, str]],
         spatial_key: Optional[str],
         alpha: Optional[float],
@@ -289,13 +291,13 @@ class TestMappingProblem:
         # initialize and prepare the MappingProblem
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
-        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, spatial_key=spatial_key)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, spatial_key=spatial_key, var_names=var_names)
 
         # check if the problem type is set correctly after `prepare`
         for prob in mp.problems.values():
             assert prob.problem_kind == problem_kind
 
         # check if the problem type is set correctly after `solve`
-        mp.solve(alpha=alpha)
+        mp = mp.solve(alpha=alpha)
         for sol in mp.solutions.values():
             assert isinstance(sol._output, solution_kind)
