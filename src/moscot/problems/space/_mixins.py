@@ -414,10 +414,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
             - ``'spearman'`` - `Spearman's rank correlation
                 <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
-
         groupby
             Optional `obs` field in `AnnData` to compute correlations over categorical groups.
-
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
 
@@ -440,7 +438,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.toarray()
 
-        corrs = {}  # type: ignore
+        corrs: Union[Dict[Tuple[K, K], Dict[Any, pd.Series]], Dict[Tuple[K, K], pd.Series]] = {}
         for key, val in self.solutions.items():
 
             # create mask corresponding to the current batch of spatial data
@@ -472,7 +470,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                     logger.debug(f"Skipping `group={group}` as it contains less then 2 samples.")
                     continue
 
-                # import pdb; pdb.set_trace()
                 corr_val = [
                     corr(gexp_pred_sp[group_mask, gi], gexp_sp[group_mask, gi])[0] for gi, _ in enumerate(var_sc)
                 ]
