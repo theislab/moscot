@@ -76,7 +76,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         self,
         sc_attr: Optional[Union[str, Mapping[str, Any]]],
         batch_key: Optional[str] = None,
-        spatial_key: Optional[Union[str, Mapping[str, Any]]] = "spatial",
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[str]] = None,
         normalize_spatial: bool = True,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
@@ -177,7 +177,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`problem_kind` - set to ``'quadratic'`` (if both ``spatial_key`` and ``sc_attr`` are passed)
             or ``'linear'`` (if both ``spatial_key`` and ``sc_attr`` are `None`).
         """
-        if spatial_key and sc_attr:
+        if sc_attr:
             x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
             y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
@@ -189,19 +189,14 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
                 x = {}
             self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
             logger.info("Preparing a :term:`quadratic problem`.")
-        elif spatial_key is None and sc_attr is None:
+        else:
             x = {}
             y = {}
             logger.info("Preparing a :term:`linear problem`.")
             if var_names and len(var_names) == 0:
                 raise ValueError("Expected `var_names` to be non-empty for a :term:`linear problem`.")
 
-        else:
-            raise ValueError(
-                "You either need to set both attr:`spatial_key` and attr:`sc_attr` (for a :term:`quadratic problem`)",
-                "or none of them (for a term:`linear problem`).",
-            )
-
+        self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
         self.batch_key = batch_key
         self.filtered_vars = var_names
 
@@ -239,7 +234,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
 
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
+        alpha: float = 0.5,
         epsilon: float = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -319,51 +314,31 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
-        solve_kwargs = {
-            "epsilon": epsilon,
-            "tau_a": tau_a,
-            "tau_b": tau_b,
-            "rank": rank,
-            "scale_cost": scale_cost,
-            "batch_size": batch_size,
-            "stage": stage,
-            "initializer": initializer,
-            "initializer_kwargs": initializer_kwargs,
-            "jit": jit,
-            "min_iterations": min_iterations,
-            "max_iterations": max_iterations,
-            "threshold": threshold,
-            "device": device,
-            **kwargs,
-        }
-
-        # convert problem type to linear for alpha=0
-        if alpha == 0.0 and self.problem_kind != "linear":
-            if self.filtered_vars and len(self.filtered_vars) == 0:
-                raise ValueError("Expected `var_names` to be non-empty for a :attr:`alpha`=0.")
-            logger.info("Ignoring quadratic terms for :attr:`alpha=0`.")
-            self._problem_kind = "linear"
-            for _, value in self.problems.items():
-                value._x = None
-                value._y = None
-                value._problem_kind = "linear"
-
-        # prepare solver kwargs, depending on the problem type
-        if self.problem_kind == "linear":
-            if alpha is not None and alpha > 0:
-                logger.warning("Ignoring :attr:`alpha` for `'linear'` problems.")
-            if "lse_mode" in linear_solver_kwargs:
-                solve_kwargs["lse_mode"] = linear_solver_kwargs["lse_mode"]
-            if "inner_iterations" in linear_solver_kwargs:
-                solve_kwargs["inner_iterations"] = linear_solver_kwargs["inner_iterations"]
+        additonal_kwargs = {}
+        if self.problem_kind == "quadratic":
+            additonal_kwargs["alpha"] = alpha
+            additonal_kwargs["linear_solver_kwargs"] = linear_solver_kwargs
         else:
-            if alpha is None:
-                raise ValueError("Expected :attr:`alpha` to be in interval `[0, 1]`, found `None`.")
-            solve_kwargs["alpha"] = alpha
-            solve_kwargs["linear_solver_kwargs"] = linear_solver_kwargs
+            additonal_kwargs.update(linear_solver_kwargs)
+            logger.warning("Solving a `linear problem`, ignoring `alpha`.")
 
         return super().solve(  # type: ignore[return-value]
-            **solve_kwargs,
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            rank=rank,
+            scale_cost=scale_cost,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            device=device,
+            **kwargs,
+            **additonal_kwargs,
         )
 
     @property

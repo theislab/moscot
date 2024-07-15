@@ -271,11 +271,11 @@ class TestMappingProblem:
 
     @pytest.mark.parametrize("var_names", [None, [str(i) for i in range(20)]])
     @pytest.mark.parametrize(
-        ("sc_attr", "spatial_key", "alpha", "problem_kind", "solution_kind"),
+        ("sc_attr", "alpha", "problem_kind", "solution_kind"),
         [
-            (None, None, None, "linear", SinkhornOutput),
-            ({"attr": "X"}, "spatial", 0.0, "quadratic", SinkhornOutput),
-            ({"attr": "X"}, "spatial", 0.5, "quadratic", GWOutput),
+            (None, 0.0, "linear", SinkhornOutput),
+            (None, 0.5, "linear", SinkhornOutput),
+            ({"attr": "X"}, 0.5, "quadratic", GWOutput),
         ],
     )
     def test_problem_type(
@@ -283,7 +283,6 @@ class TestMappingProblem:
         adata_mapping: AnnData,
         var_names: Optional[List[str]],
         sc_attr: Optional[Mapping[str, str]],
-        spatial_key: Optional[str],
         alpha: Optional[float],
         problem_kind: Literal["linear", "quadratic"],
         solution_kind: Union[SinkhornOutput, GWOutput],
@@ -291,7 +290,7 @@ class TestMappingProblem:
         # initialize and prepare the MappingProblem
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
-        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, spatial_key=spatial_key, var_names=var_names)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
 
         # check if the problem type is set correctly after `prepare`
         for prob in mp.problems.values():
