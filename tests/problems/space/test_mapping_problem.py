@@ -274,7 +274,6 @@ class TestMappingProblem:
         ("sc_attr", "alpha", "problem_kind", "solution_kind"),
         [
             (None, 0.0, "linear", SinkhornOutput),
-            (None, 0.5, "linear", SinkhornOutput),
             ({"attr": "X"}, 0.5, "quadratic", GWOutput),
         ],
     )
@@ -300,3 +299,22 @@ class TestMappingProblem:
         mp = mp.solve(alpha=alpha)
         for sol in mp.solutions.values():
             assert isinstance(sol._output, solution_kind)
+
+    @pytest.mark.parametrize(
+        ("sc_attr", "alpha"),
+        [
+            (None, 0.5),
+            ({"attr": "X"}, 0),
+        ],
+    )
+    def test_problem_type_corner_cases(
+        self, adata_mapping: AnnData, sc_attr: Optional[Mapping[str, str]], alpha: Optional[float]
+    ):
+        # initialize and prepare the MappingProblem
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
+
+        # we test two incompatible combinations of `sc_attr` and `alpha`
+        with pytest.raises(ValueError, match=r"^Expected `alpha`"):
+            mp.solve(alpha=alpha)
