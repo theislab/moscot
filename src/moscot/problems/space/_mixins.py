@@ -484,6 +484,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[Sequence[str]] = None,
         device: Optional[Device_t] = None,
+        batch_size: Optional[int] = None,
     ) -> AnnData:
         """Impute the expression of specific genes.
 
@@ -493,6 +494,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+        batch_size:
+            Number of features to process at once. If :obj:`None`, process all features at once.
+            Larger values will require more memory.
 
         Returns
         -------
@@ -505,7 +509,17 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.toarray()
 
-        predictions = [val.to(device=device).pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
+        # TODO(@Marius1311): update this once memory issues in the PointCloud are fixed
+        n_splits = np.floor(gexp_sc.shape[1] / batch_size) if batch_size else 1
+        predictions = [
+            np.hstack(
+                [
+                    val.to(device=device).pull(x, scale_by_marginals=True)
+                    for x in np.array_split(gexp_sc, n_splits, axis=1)
+                ],
+            )
+            for val in self.solutions.values()
+        ]
 
         adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names
