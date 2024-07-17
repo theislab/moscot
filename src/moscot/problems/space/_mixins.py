@@ -398,6 +398,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         corr_method: Literal["pearson", "spearman"] = "pearson",
         device: Optional[Device_t] = None,
         groupby: Optional[str] = None,
+        batch_size: Optional[int] = None,
     ) -> Union[Mapping[Tuple[K, K], Mapping[Any, pd.Series]], Mapping[Tuple[K, K], pd.Series]]:
         """Correlate true and predicted gene expression.
 
@@ -414,10 +415,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
             - ``'spearman'`` - `Spearman's rank correlation
                 <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
-        groupby
-            Optional `obs` field in `AnnData` to compute correlations over categorical groups.
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+        groupby
+            Optional `obs` field in `AnnData` to compute correlations over categorical groups.
+        batch_size:
+            Number of features to process at once. If :obj:`None`, process all features at once.
+            Larger values will require more memory.
 
         Returns
         -------
@@ -462,7 +466,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 gexp_sp = gexp_sp.toarray()
 
             # predict spatial feature expression
-            gexp_pred_sp = val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
+            n_splits = np.floor(gexp_sc.shape[1] / batch_size) if batch_size else 1
+            gexp_pred_sp = np.hstack(
+                [
+                    val.to(device=device).pull(x, scale_by_marginals=True)
+                    for x in np.array_split(gexp_sc, n_splits, axis=1)
+                ],
+            )
 
             # loop over groups and compute correlations
             for group, group_mask in group_masks.items():
@@ -509,7 +519,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.toarray()
 
-        # TODO(@Marius1311): update this once memory issues in the PointCloud are fixed
+        # predict spatial feature expression
         n_splits = np.floor(gexp_sc.shape[1] / batch_size) if batch_size else 1
         predictions = [
             np.hstack(
