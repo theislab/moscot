@@ -322,7 +322,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             if alpha != 0:
                 raise ValueError("Expected `alpha` to be 0 for a `linear problem`.")
             additonal_kwargs.update(linear_solver_kwargs)
-            # logger.warning("Solving a `linear problem`, ignoring `alpha`.")
 
         return super().solve(  # type: ignore[return-value]
             epsilon=epsilon,
