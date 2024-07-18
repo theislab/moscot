@@ -523,20 +523,26 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         # predict spatial feature expression
         n_splits = np.max([np.floor(gexp_sc.shape[1] / batch_size), 1]) if batch_size else 1
         logger.debug(f"Processing {gexp_sc.shape[1]} features in {n_splits} batches.")
-        predictions = [
-            np.hstack(
-                [
-                    val.to(device=device).pull(x, scale_by_marginals=True)
-                    for x in np.array_split(gexp_sc, n_splits, axis=1)
-                ],
-            )
-            for val in self.solutions.values()
-        ]
 
-        adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
+        predictions = np.nan_to_num(
+            np.vstack(
+                [
+                    np.hstack(
+                        [
+                            val.to(device=device).pull(x, scale_by_marginals=True)
+                            for x in np.array_split(gexp_sc, n_splits, axis=1)
+                        ]
+                    )
+                    for val in self.solutions.values()
+                ]
+            ),
+            nan=0.0,
+            copy=False,
+        )
+
+        adata_pred = AnnData(X=predictions, obsm=self.adata_sp.obsm.copy())
         adata_pred.obs_names = self.adata_sp.obs_names
         adata_pred.var_names = var_names
-        adata_pred.obsm = self.adata_sp.obsm.copy()
 
         return adata_pred
 
