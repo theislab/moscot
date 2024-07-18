@@ -418,7 +418,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
         groupby
-            Optional `obs` field in `AnnData` to compute correlations over categorical groups.
+            Optional key in :attr:`~anndata.AnnData.obs`, containing categorical annotations for grouping.
         batch_size:
             Number of features to process at once. If :obj:`None`, process all features at once.
             Larger values will require more memory.
