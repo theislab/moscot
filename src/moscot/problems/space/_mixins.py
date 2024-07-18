@@ -398,6 +398,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         corr_method: Literal["pearson", "spearman"] = "pearson",
         device: Optional[Device_t] = None,
         groupby: Optional[str] = None,
+        batch_size: Optional[int] = None,
     ) -> Union[Mapping[Tuple[K, K], Mapping[Any, pd.Series]], Mapping[Tuple[K, K], pd.Series]]:
         """Correlate true and predicted gene expression.
 
@@ -414,10 +415,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
             - ``'spearman'`` - `Spearman's rank correlation
                 <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
-        groupby
-            Optional `obs` field in `AnnData` to compute correlations over categorical groups.
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+        groupby
+            Optional key in :attr:`~anndata.AnnData.obs`, containing categorical annotations for grouping.
+        batch_size:
+            Number of features to process at once. If :obj:`None`, process all features at once.
+            Larger values will require more memory.
 
         Returns
         -------
@@ -462,7 +466,14 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 gexp_sp = gexp_sp.toarray()
 
             # predict spatial feature expression
-            gexp_pred_sp = val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
+            n_splits = np.max([np.floor(gexp_sc.shape[1] / batch_size), 1]) if batch_size else 1
+            logger.debug(f"Processing {gexp_sc.shape[1]} features in {n_splits} batches.")
+            gexp_pred_sp = np.hstack(
+                [
+                    val.to(device=device).pull(x, scale_by_marginals=True)
+                    for x in np.array_split(gexp_sc, n_splits, axis=1)
+                ],
+            )
 
             # loop over groups and compute correlations
             for group, group_mask in group_masks.items():
@@ -484,6 +495,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[Sequence[str]] = None,
         device: Optional[Device_t] = None,
+        batch_size: Optional[int] = None,
     ) -> AnnData:
         """Impute the expression of specific genes.
 
@@ -493,6 +505,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+        batch_size:
+            Number of features to process at once. If :obj:`None`, process all features at once.
+            Larger values will require more memory.
 
         Returns
         -------
@@ -505,12 +520,29 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.toarray()
 
-        predictions = [val.to(device=device).pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
+        # predict spatial feature expression
+        n_splits = np.max([np.floor(gexp_sc.shape[1] / batch_size), 1]) if batch_size else 1
+        logger.debug(f"Processing {gexp_sc.shape[1]} features in {n_splits} batches.")
 
-        adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
+        predictions = np.nan_to_num(
+            np.vstack(
+                [
+                    np.hstack(
+                        [
+                            val.to(device=device).pull(x, scale_by_marginals=True)
+                            for x in np.array_split(gexp_sc, n_splits, axis=1)
+                        ]
+                    )
+                    for val in self.solutions.values()
+                ]
+            ),
+            nan=0.0,
+            copy=False,
+        )
+
+        adata_pred = AnnData(X=predictions, obsm=self.adata_sp.obsm.copy())
         adata_pred.obs_names = self.adata_sp.obs_names
         adata_pred.var_names = var_names
-        adata_pred.obsm = self.adata_sp.obsm.copy()
 
         return adata_pred
 
