@@ -466,7 +466,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 gexp_sp = gexp_sp.toarray()
 
             # predict spatial feature expression
-            n_splits = np.floor(gexp_sc.shape[1] / batch_size) if batch_size else 1
+            n_splits = np.max([np.floor(gexp_sc.shape[1] / batch_size), 1]) if batch_size else 1
+            logger.debug(f"Processing {gexp_sc.shape[1]} features in {n_splits} batches.")
             gexp_pred_sp = np.hstack(
                 [
                     val.to(device=device).pull(x, scale_by_marginals=True)
@@ -520,7 +521,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             gexp_sc = gexp_sc.toarray()
 
         # predict spatial feature expression
-        n_splits = np.floor(gexp_sc.shape[1] / batch_size) if batch_size else 1
+        n_splits = np.max([np.floor(gexp_sc.shape[1] / batch_size), 1]) if batch_size else 1
+        logger.debug(f"Processing {gexp_sc.shape[1]} features in {n_splits} batches.")
         predictions = [
             np.hstack(
                 [
