@@ -174,8 +174,8 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
-        - :attr:`problem_kind` - set to ``'quadratic'`` (if both ``spatial_key`` and ``sc_attr`` are passed)
-            or ``'linear'`` (if both ``spatial_key`` and ``sc_attr`` are `None`).
+        - :attr:`problem_kind` - set to ``'quadratic'`` (if both `spatial_key` and `sc_attr` are passed)
+            or ``'linear'`` (if both `spatial_key` and `sc_attr` are `None`).
         """
         if sc_attr:
             x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
