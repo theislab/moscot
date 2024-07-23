@@ -426,7 +426,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        Correlation for each solution in :attr:`solutions`.
+        Correlation for each solution in `solutions`.
         """
         var_sc = self._filter_vars(var_names)
         if var_sc is None or not len(var_sc):
