@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Tuple, Type, Union
 
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_matrix
 
 from anndata import AnnData
@@ -46,10 +47,21 @@ class MockSolverOutput(MatrixSolverOutput):
         return np.ones(n)
 
 
-def _make_adata(grid: ArrayLike, n: int, seed) -> List[AnnData]:
+def _make_adata(grid: ArrayLike, n: int, seed, cat_key: str = "covariate", num_categories: int = 3) -> List[AnnData]:
     rng = np.random.RandomState(seed)
-    X = rng.normal(size=(100, 60))
-    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
+    n_cells = 100
+    X = rng.normal(size=(n_cells, 60))
+
+    # generate a categorical variable
+    categories = [f"cat_{i+1}" for i in range(num_categories)]
+    categorical_data = rng.choice(categories, size=n_cells)
+
+    adatas = []
+    for _ in range(n):
+        obs_df = pd.DataFrame({cat_key: pd.Categorical(categorical_data)})
+        adatas.append(AnnData(X=csr_matrix(X), obs=obs_df, obsm={"spatial": grid.copy()}))
+
+    return adatas
 
 
 def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:

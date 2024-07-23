@@ -127,18 +127,27 @@ class TestSpatialAlignmentAnalysisMixin:
 class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("var_names", ["0", [str(i) for i in range(20)]])
+    @pytest.mark.parametrize("groupby", [None, "covariate"])
+    @pytest.mark.parametrize("batch_size", [None, 7, 10, 100])
     def test_analysis(
         self,
         adata_mapping: AnnData,
         sc_attr: Dict[str, str],
         var_names: Optional[List[Optional[str]]],
+        groupby: Optional[str],
+        batch_size: Optional[int],
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr=sc_attr).solve()
 
-        corr = mp.correlate(var_names)
-        imp = mp.impute()
-        pd.testing.assert_series_equal(*list(corr.values()))
+        corr = mp.correlate(var_names, groupby=groupby, batch_size=batch_size)
+        imp = mp.impute(batch_size=batch_size)
+
+        if groupby:
+            for key in adata_mapping.obs[groupby].cat.categories:
+                pd.testing.assert_series_equal(*[corr[problem][key] for problem in corr])
+        else:
+            pd.testing.assert_series_equal(*list(corr.values()))
         assert imp.shape == adatasp.shape
 
     def test_correspondence(

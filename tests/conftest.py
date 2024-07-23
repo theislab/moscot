@@ -185,7 +185,7 @@ def adata_space_rotate() -> AnnData:
 @pytest.fixture()
 def adata_mapping() -> AnnData:
     grid = _make_grid(10)
-    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
+    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17, cat_key="covariate", num_categories=3)
     sc.pp.pca(adataref, n_comps=30)
     return ad.concat([adataref, adata1, adata2], label="batch", join="outer", index_unique="-")
 
