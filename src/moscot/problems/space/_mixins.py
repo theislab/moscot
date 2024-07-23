@@ -413,8 +413,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             Correlation method. Valid options are:
 
                 - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
-                - ``'spearman'`` - `Spearman's rank correlation
-                    <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+                - ``'spearman'`` - `Spearman rank correlation <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
 
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.

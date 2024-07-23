@@ -119,7 +119,7 @@ tippy_anchor_parent_selector = "div.content"
 tippy_enable_mathjax = True
 # no need because of sphinxcontrib-bibtex
 tippy_enable_doitips = False
-
+linkcheck_report_timeouts_as_broken = True
 linkcheck_ignore = [
     # 403 Client Error
     r"https://doi.org/10.1126/science.aad0501",
