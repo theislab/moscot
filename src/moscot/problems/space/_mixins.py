@@ -412,20 +412,20 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         corr_method
             Correlation method. Valid options are:
 
-            - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
-            - ``'spearman'`` - `Spearman's rank correlation
-                <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+                - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
+                - ``'spearman'`` - `Spearman rank correlation <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
         groupby
             Optional key in :attr:`~anndata.AnnData.obs`, containing categorical annotations for grouping.
-        batch_size:
+        batch_size
             Number of features to process at once. If :obj:`None`, process all features at once.
             Larger values will require more memory.
 
         Returns
         -------
-        Correlation for each solution in :attr:`solutions`.
+        Correlation for each solution in `solutions`.
         """
         var_sc = self._filter_vars(var_names)
         if var_sc is None or not len(var_sc):

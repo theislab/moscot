@@ -174,8 +174,8 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
-        - :attr:`problem_kind` - set to ``'quadratic'`` (if both ``spatial_key`` and ``sc_attr`` are passed)
-            or ``'linear'`` (if both ``spatial_key`` and ``sc_attr`` are `None`).
+        - :attr:`problem_kind` - set to ``'quadratic'`` (if both `spatial_key` and `sc_attr` are passed)
+            or ``'linear'`` (if both `spatial_key` and `sc_attr` are `None`).
         """
         if sc_attr:
             x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
@@ -292,15 +292,15 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         min_iterations
             Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` or :term:`Sinkhorn` iterations,
-            depending on :attr:`alpha`.
+            depending on `alpha`.
         max_iterations
             Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` or :term:`Sinkhorn` iterations,
-            depending on :attr:`alpha`.
+            depending on `alpha`.
         threshold
             Convergence threshold of the :term:`GW <Gromov-Wasserstein>` or the :term:`Sinkhorn` algorithm,
-            depending on :attr:`alpha`.
+            depending on `alpha`.
         linear_solver_kwargs
-            Keyword arguments for the inner :term:`linear problem` solver. Only used when :attr:`alpha` > 0.
+            Keyword arguments for the inner :term:`linear problem` solver. Only used when `alpha` > 0.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.

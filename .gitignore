@@ -154,3 +154,4 @@ packages.dot
 
 # plotting tests
 tests/plotting/actual_figures/
+tests/plotting/figures/
