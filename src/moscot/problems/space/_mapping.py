@@ -4,6 +4,7 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 from anndata import AnnData
 
 from moscot import _constants
+from moscot._logging import logger
 from moscot._types import (
     ArrayLike,
     CostKwargs_t,
@@ -12,8 +13,9 @@ from moscot._types import (
     ProblemStage_t,
     QuadInitializer_t,
     ScaleCost_t,
+    SinkhornInitializer_t,
 )
-from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialMappingMixin
@@ -72,7 +74,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
 
     def prepare(
         self,
-        sc_attr: Union[str, Mapping[str, Any]],
+        sc_attr: Optional[Union[str, Mapping[str, Any]]],
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[str]] = None,
@@ -82,7 +84,14 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        reference: Optional[Any] = None,
     ) -> "MappingProblem[K]":
         """Prepare the mapping problem problem.
 
@@ -155,8 +164,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -167,31 +174,62 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
-        - :attr:`problem_kind` - set to ``'quadratic'``.
+        - :attr:`problem_kind` - set to ``'quadratic'`` (if both `spatial_key` and `sc_attr` are passed)
+            or ``'linear'`` (if both `spatial_key` and `sc_attr` are `None`).
         """
-        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
-        y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
+        if sc_attr:
+            x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
+            y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
-        if normalize_spatial and "x_callback" not in kwargs:
-            kwargs["x_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", x)
-        if "spatial-norm" in kwargs.get("x_callback", {}):
+            if normalize_spatial and x_callback is None:
+                x_callback = "spatial-norm"
+                if not len(x_callback_kwargs):
+                    x_callback_kwargs = x
+            if isinstance(x_callback, str) and x_callback in "spatial-norm":
+                x = {}
+            self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
+            logger.info("Preparing a :term:`quadratic problem`.")
+        else:
             x = {}
+            y = {}
+            logger.info("Preparing a :term:`linear problem`.")
+            if var_names and len(var_names) == 0:
+                raise ValueError("Expected `var_names` to be non-empty for a :term:`linear problem`.")
 
-        self.batch_key = batch_key
         self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
+        self.batch_key = batch_key
         self.filtered_vars = var_names
 
         if self.filtered_vars is not None:
-            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+            xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         else:
             xy = {}
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
-        if xy:
-            kwargs["xy"] = xy
-
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+        )
         return super().prepare(  # type: ignore[return-value]
-            x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs
+            xy=xy,
+            x=x,
+            y=y,
+            policy="external_star",
+            key=batch_key,
+            a=a,
+            b=b,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            subset=subset,
+            reference=reference,
         )
 
     def solve(
@@ -204,7 +242,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         scale_cost: ScaleCost_t = "mean",
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: QuadInitializer_t = None,
+        initializer: Union[QuadInitializer_t, SinkhornInitializer_t] = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: Optional[int] = None,
@@ -235,8 +273,8 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
             on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
         rank
-            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
-            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a,scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`cuturi:2013,peyre:2016` is used.
         scale_cost
             How to re-scale the cost matrices. If a :class:`float`, the cost matrices
             will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
@@ -253,13 +291,16 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         jit
             Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         min_iterations
-            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` or :term:`Sinkhorn` iterations,
+            depending on `alpha`.
         max_iterations
-            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` or :term:`Sinkhorn` iterations,
+            depending on `alpha`.
         threshold
-            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` or the :term:`Sinkhorn` algorithm,
+            depending on `alpha`.
         linear_solver_kwargs
-            Keyword arguments for the inner :term:`linear problem` solver.
+            Keyword arguments for the inner :term:`linear problem` solver. Only used when `alpha` > 0.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
@@ -273,8 +314,16 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
+        additonal_kwargs = {}
+        if self.problem_kind == "quadratic":
+            additonal_kwargs["alpha"] = alpha
+            additonal_kwargs["linear_solver_kwargs"] = linear_solver_kwargs
+        else:
+            if alpha != 0:
+                raise ValueError("Expected `alpha` to be 0 for a `linear problem`.")
+            additonal_kwargs.update(linear_solver_kwargs)
+
         return super().solve(  # type: ignore[return-value]
-            alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -288,9 +337,9 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
+            **additonal_kwargs,
         )
 
     @property

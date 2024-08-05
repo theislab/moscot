@@ -18,6 +18,7 @@ from typing import (
 )
 
 import cloudpickle
+from docstring_inheritance import NumpyDocstringInheritanceMeta
 
 import numpy as np
 import pandas as pd
@@ -61,7 +62,11 @@ K = TypeVar("K", bound=Hashable)
 __all__ = ["BaseProblem", "OTProblem", "CondOTProblem"]
 
 
-class BaseProblem(abc.ABC):
+class CombinedMeta(abc.ABCMeta, NumpyDocstringInheritanceMeta):
+    pass
+
+
+class BaseProblem(abc.ABC, metaclass=CombinedMeta):
     """Base class for all :term:`OT` problems."""
 
     def __init__(self):
@@ -307,7 +312,7 @@ class OTProblem(BaseProblem):
         y: Mapping[str, Any],
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
-        **kwargs: Any,
+        marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
     ) -> "OTProblem":
         """Prepare the :term:`OT` problem.
 
@@ -344,7 +349,7 @@ class OTProblem(BaseProblem):
               from :attr:`adata_tgt`, otherwise use uniform marginals.
             - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
+        marginal_kwargs
             Keyword arguments for :meth:`estimate_marginals` when ``a = True`` or ``b = True``.
 
         Returns
@@ -388,8 +393,8 @@ class OTProblem(BaseProblem):
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
-        self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
-        self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
+        self._a = self._create_marginals(self.adata_src, data=a, source=True, marginal_kwargs=marginal_kwargs)
+        self._b = self._create_marginals(self.adata_tgt, data=b, source=False, marginal_kwargs=marginal_kwargs)
         return self
 
     @wrap_solve
@@ -654,7 +659,7 @@ class OTProblem(BaseProblem):
                 raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")
             adata = adata_y
         if attr is None:
-            raise ValueError("`attrs` cannot be `None` with this callback.")
+            raise ValueError("`attr` cannot be `None` with this callback.")
         spatial = TaggedArray._extract_data(adata, attr=attr, key=key)
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
@@ -697,10 +702,9 @@ class OTProblem(BaseProblem):
         source: bool,
         data: Optional[Union[bool, str, ArrayLike]] = None,
         marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
     ) -> ArrayLike:
-        if data is True:
-            marginals = self.estimate_marginals(adata, source=source, **marginal_kwargs, **kwargs)
+        if data is True:  # this is the only case when kwargs are passed
+            marginals = self.estimate_marginals(adata, source=source, **marginal_kwargs)
         elif data is False or data is None:
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):
@@ -718,7 +722,7 @@ class OTProblem(BaseProblem):
             )
         return marginals
 
-    def estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
+    def estimate_marginals(self, adata: AnnData, *, source: bool) -> ArrayLike:
         """Estimate the source or target :term:`marginals`.
 
         .. note::
@@ -737,7 +741,6 @@ class OTProblem(BaseProblem):
         -------
         The estimated source or target marginals of shape ``[n,]`` or ``[m,]``, depending on the ``source``.
         """
-        del kwargs
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     def set_graph_xy(

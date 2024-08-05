@@ -24,8 +24,10 @@ class TestBirthDeathProblem:
             y={"attr": "X"},
             a=True,
             b=True,
-            proliferation_key="proliferation",
-            apoptosis_key="apoptosis",
+            marginal_kwargs={
+                "proliferation_key": "proliferation",
+                "apoptosis_key": "apoptosis",
+            },
         )
 
         assert prob.delta == (t2 - t1)
@@ -81,7 +83,16 @@ class TestBirthDeathProblem:
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
         prob = BirthDeathProblem(adata_x, adata_y, src_key=t1, tgt_key=t2)
-        prob = prob.prepare(xy={}, x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, proliferation_key="proliferation")
+        prob = prob.prepare(
+            xy={},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            a=True,
+            b=True,
+            marginal_kwargs={
+                "proliferation_key": "proliferation",
+            },
+        )
         assert prob.delta == (t2 - t1)
 
         gr = prob.prior_growth_rates
@@ -92,7 +103,14 @@ class TestBirthDeathProblem:
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
         prob = BirthDeathProblem(adata_x, adata_y, src_key=t1, tgt_key=t2)
-        prob = prob.prepare(xy={}, x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, proliferation_key="proliferation")
+        prob = prob.prepare(
+            xy={},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            a=True,
+            b=True,
+            marginal_kwargs={"proliferation_key": "proliferation"},
+        )
         prob = prob.solve(max_iterations=10)
         assert prob.delta == (t2 - t1)
 
@@ -115,8 +133,10 @@ class TestBirthDeathProblem:
             y={"attr": "X"},
             a=True,
             b=True,
-            proliferation_key="proliferation",
-            apoptosis_key="apoptosis",
+            marginal_kwargs={
+                "proliferation_key": "proliferation",
+                "apoptosis_key": "apoptosis",
+            },
         )
 
         gr1 = prob.prior_growth_rates
@@ -126,9 +146,11 @@ class TestBirthDeathProblem:
             y={"attr": "X"},
             a=True,
             b=True,
-            proliferation_key="proliferation",
-            apoptosis_key="apoptosis",
-            marginal_kwargs=marginal_kwargs,
+            marginal_kwargs={
+                "proliferation_key": "proliferation",
+                "apoptosis_key": "apoptosis",
+                **marginal_kwargs,
+            },
         )
         gr2 = prob.prior_growth_rates
         if len(marginal_kwargs) > 0:

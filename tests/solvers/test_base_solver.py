@@ -31,7 +31,7 @@ class TestBaseDiscreteSolverOutput:
         assert isinstance(pull1, np.ndarray)
 
         if threshold == 0.0:
-            np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
+            np.testing.assert_allclose(res.toarray(), tmap, rtol=RTOL, atol=ATOL)
             np.testing.assert_array_less(0.5, np.corrcoef(pull1.squeeze(), pull2.squeeze())[0, 1])
         elif threshold == 1e-1:
             data = res.data
@@ -54,7 +54,7 @@ class TestBaseDiscreteSolverOutput:
         assert isinstance(res, sp.csr_matrix)
         assert res.shape == shape
         np.testing.assert_array_equal(res.data >= 0.0, True)
-        np.testing.assert_array_equal(np.sum(res.A, axis=1) > 0.0, True)
+        np.testing.assert_array_equal(np.sum(res.toarray(), axis=1) > 0.0, True)
         vec_pull = np.abs(rng.randn(shape[1], 1))
         pull1 = mso.pull(vec_pull)
         pull2 = output.pull(vec_pull)
@@ -76,7 +76,7 @@ class TestBaseDiscreteSolverOutput:
         np.testing.assert_array_equal(res.data >= 0.0, True)
         n, m = shape
         if threshold == 0:
-            assert np.sum(tmap != res.A) < n * m * 0.1  # this only holds with probability < 1
+            assert np.sum(tmap != res.toarray()) < n * m * 0.1  # this only holds with probability < 1
         if threshold == 100:
             assert res.nnz < n * m * 0.9  # this only holds with probability < 1
         vec_pull = np.abs(rng.randn(shape[1], 1))

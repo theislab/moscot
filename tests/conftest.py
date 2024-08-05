@@ -185,7 +185,7 @@ def adata_space_rotate() -> AnnData:
 @pytest.fixture()
 def adata_mapping() -> AnnData:
     grid = _make_grid(10)
-    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
+    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17, cat_key="covariate", num_categories=3)
     sc.pp.pca(adataref, n_comps=30)
     return ad.concat([adataref, adata1, adata2], label="batch", join="outer", index_unique="-")
 
@@ -197,7 +197,7 @@ def adata_translation() -> AnnData:
     adata = ad.concat(adatas, label="batch", index_unique="-")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.obs["celltype"] = adata.obs["celltype"].astype("category")
-    adata.layers["counts"] = adata.X.A
+    adata.layers["counts"] = adata.X.toarray()
     sc.pp.pca(adata)
     return adata
 
@@ -253,7 +253,7 @@ def adata_anno(
     adatas = [adata_src, adata_tgt]
     adata = ad.concat(adatas, join="outer", label=key, index_unique="-", uns_merge="unique")
     adata.obs[key] = (pd.to_numeric(adata.obs[key]) if key == "day" else adata.obs[key]).astype("category")
-    adata.layers["counts"] = adata.X.A
+    adata.layers["counts"] = adata.X.toarray()
     sc.pp.pca(adata)
     return adata
 

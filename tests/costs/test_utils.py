@@ -16,10 +16,6 @@ class TestCostUtils:
             "cosine",
             "pnorm_p",
             "sq_pnorm",
-            "elastic_l1",
-            "elastic_l2",
-            "elastic_stvs",
-            "elastic_sqk_overlap",
         ),
     }
 

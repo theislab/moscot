@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Literal, Mapping, Optional
+from typing import Any, List, Literal, Mapping, Optional, Union
 
 import pytest
 
@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler
+from ott.solvers.linear.sinkhorn import SinkhornOutput
+from ott.solvers.quadratic.gromov_wasserstein import GWOutput
 
 import anndata as ad
 import scanpy as sc
@@ -152,7 +154,7 @@ class TestMappingProblem:
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp[key].A.astype("float64"),
+                    data=adata_subset.obsp[key].toarray().astype("float64"),
                 )
                 if dense_input
                 else (
@@ -169,7 +171,7 @@ class TestMappingProblem:
                 pd.DataFrame(
                     index=adataref.obs_names,
                     columns=adataref.obs_names,
-                    data=adataref.obsp[key].A.astype("float64"),
+                    data=adataref.obsp[key].toarray().astype("float64"),
                 )
                 if dense_input
                 else (
@@ -266,3 +268,53 @@ class TestMappingProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    @pytest.mark.parametrize("var_names", [None, [str(i) for i in range(20)]])
+    @pytest.mark.parametrize(
+        ("sc_attr", "alpha", "problem_kind", "solution_kind"),
+        [
+            (None, 0.0, "linear", SinkhornOutput),
+            ({"attr": "X"}, 0.5, "quadratic", GWOutput),
+        ],
+    )
+    def test_problem_type(
+        self,
+        adata_mapping: AnnData,
+        var_names: Optional[List[str]],
+        sc_attr: Optional[Mapping[str, str]],
+        alpha: Optional[float],
+        problem_kind: Literal["linear", "quadratic"],
+        solution_kind: Union[SinkhornOutput, GWOutput],
+    ):
+        # initialize and prepare the MappingProblem
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
+
+        # check if the problem type is set correctly after `prepare`
+        for prob in mp.problems.values():
+            assert prob.problem_kind == problem_kind
+
+        # check if the problem type is set correctly after `solve`
+        mp = mp.solve(alpha=alpha)
+        for sol in mp.solutions.values():
+            assert isinstance(sol._output, solution_kind)
+
+    @pytest.mark.parametrize(
+        ("sc_attr", "alpha"),
+        [
+            (None, 0.5),
+            ({"attr": "X"}, 0),
+        ],
+    )
+    def test_problem_type_corner_cases(
+        self, adata_mapping: AnnData, sc_attr: Optional[Mapping[str, str]], alpha: Optional[float]
+    ):
+        # initialize and prepare the MappingProblem
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
+
+        # we test two incompatible combinations of `sc_attr` and `alpha`
+        with pytest.raises(ValueError, match=r"^Expected `alpha`"):
+            mp.solve(alpha=alpha)
