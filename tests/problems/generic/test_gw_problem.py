@@ -11,7 +11,7 @@ from ott.solvers.linear import acceleration
 from anndata import AnnData
 
 from moscot._types import CostKwargs_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
 from tests._utils import _assert_marginals_set
@@ -72,7 +72,7 @@ class TestGWProblem:
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
             assert problem[key].solver._problem.geom_xy is None
             # assert prior and posterior marginals are the same

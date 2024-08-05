@@ -416,7 +416,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 - ``'spearman'`` - `Spearman rank correlation <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
 
         device
-            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
         groupby
             Optional key in :attr:`~anndata.AnnData.obs`, containing categorical annotations for grouping.
         batch_size
@@ -504,7 +504,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         var_names
             Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
         device
-            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
         batch_size:
             Number of features to process at once. If :obj:`None`, process all features at once.
             Larger values will require more memory.

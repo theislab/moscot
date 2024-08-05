@@ -1,6 +1,6 @@
 Installation
 ============
-:mod:`moscot` requires Python version >= 3.8 to run.
+:mod:`moscot` requires Python version >= 3.9 to run.
 
 PyPI
 ----

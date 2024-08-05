@@ -7,7 +7,7 @@ name = "moscot"
 dynamic = ["version"]
 description = "Multi-omic single-cell optimal transport tools"
 readme = "README.rst"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {file = "LICENSE"}
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -19,7 +19,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Typing :: Typed",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
@@ -55,7 +54,7 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax>=0.4.6",
+    "ott-jax[neural]>=0.4.6",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
     "docstring_inheritance>=2.0.0"
@@ -263,16 +262,16 @@ max_line_length = 120
 legacy_tox_ini = """
 [tox]
 min_version = 4.0
-env_list = lint-code,py{3.8,3.9,3.10,3.11}
+env_list = lint-code,py{3.9,3.10,3.11}
 skip_missing_interpreters = true
 
 [testenv]
 extras = test
-pass_env = PYTEST_*,CI
 commands =
     python -m pytest {tty:--color=yes} {posargs: \
         --cov={env_site_packages_dir}{/}moscot --cov-config={tox_root}{/}pyproject.toml \
         --no-cov-on-fail --cov-report=xml --cov-report=term-missing:skip-covered}
+passenv = PYTEST_*,CI
 
 [testenv:lint-code]
 description = Lint the code.

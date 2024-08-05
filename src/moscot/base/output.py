@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import abc
 import copy
 import functools
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
+from abc import abstractmethod
+from typing import Any, Callable, Iterable, Literal, Optional, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -10,11 +13,52 @@ from scipy.sparse.linalg import LinearOperator
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
+__all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
 
 class BaseSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
+
+    @abc.abstractmethod
+    def pull(self, x: ArrayLike, **kwargs) -> ArrayLike:
+        """Pull the solution based on a condition."""
+
+    @abc.abstractmethod
+    def push(self, x: ArrayLike, **kwargs) -> ArrayLike:
+        """Push the solution based on a condition."""
+
+    @property
+    @abc.abstractmethod
+    def shape(self) -> tuple[int, int]:
+        """Shape of the problem."""
+
+    @abc.abstractmethod
+    def to(self: BaseSolverOutput, device: Optional[Device_t] = None) -> BaseSolverOutput:
+        """Transfer self to another compute device.
+
+        Parameters
+        ----------
+        device
+            Device where to transfer the solver output. If :obj:`None`, use the default device.
+
+        Returns
+        -------
+        Self transferred to the ``device``.
+        """
+
+    def _format_params(self, fmt: Callable[[Any], str]) -> str:
+        params = {"shape": self.shape}
+        return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}[{self._format_params(repr)}]"
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self._format_params(str)}]"
+
+
+class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
+    """Base class for all discrete solver outputs."""
 
     @abc.abstractmethod
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
@@ -24,11 +68,6 @@ class BaseSolverOutput(abc.ABC):
     @abc.abstractmethod
     def transport_matrix(self) -> ArrayLike:
         """Transport matrix of shape ``[n, m]``."""
-
-    @property
-    @abc.abstractmethod
-    def shape(self) -> Tuple[int, int]:
-        """Shape of the :attr:`transport_matrix`."""
 
     @property
     @abc.abstractmethod
@@ -42,7 +81,7 @@ class BaseSolverOutput(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
+    def potentials(self) -> Optional[tuple[ArrayLike, ArrayLike]]:
         """:term:`Dual potentials` :math:`f` and :math:`g`.
 
         Only valid for the :term:`Sinkhorn` algorithm.
@@ -50,22 +89,13 @@ class BaseSolverOutput(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def shape(self) -> tuple[int, int]:
+        """Shape of the :attr:`transport_matrix`."""
+
+    @property
+    @abc.abstractmethod
     def is_linear(self) -> bool:
         """Whether the output is a solution to a :term:`linear problem`."""
-
-    @abc.abstractmethod
-    def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
-        """Transfer self to another compute device.
-
-        Parameters
-        ----------
-        device
-            Device where to transfer the solver output. If :obj:`None`, use the default device.
-
-        Returns
-        -------
-        Self transferred to the ``device``.
-        """
 
     @property
     def rank(self) -> int:
@@ -147,7 +177,7 @@ class BaseSolverOutput(abc.ABC):
         # pull: X @ a (matvec)
         return LinearOperator(shape=self.shape, dtype=self.dtype, matvec=pull, rmatvec=push)
 
-    def chain(self, outputs: Iterable["BaseSolverOutput"], scale_by_marginals: bool = False) -> LinearOperator:
+    def chain(self, outputs: Iterable[BaseDiscreteSolverOutput], scale_by_marginals: bool = False) -> LinearOperator:
         """Chain subsequent applications of :attr:`transport_matrix`.
 
         Parameters
@@ -174,7 +204,7 @@ class BaseSolverOutput(abc.ABC):
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
-    ) -> "MatrixSolverOutput":
+    ) -> MatrixSolverOutput:
         """Sparsify the :attr:`transport_matrix`.
 
         This function sets all entries of the transport matrix below a certain threshold to :math:`0` and
@@ -235,7 +265,7 @@ class BaseSolverOutput(abc.ABC):
             raise NotImplementedError(f"Mode `{mode}` is not yet implemented.")
 
         k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
-        tmaps_sparse: List[sp.csr_matrix] = []
+        tmaps_sparse: list[sp.csr_matrix] = []
 
         for batch in range(0, k, batch_size):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
@@ -268,6 +298,10 @@ class BaseSolverOutput(abc.ABC):
         """Underlying data type."""
         return self.a.dtype
 
+    def _format_params(self, fmt: Callable[[Any], str]) -> str:
+        params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
+        return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
+
     def _scale_by_marginals(self, x: ArrayLike, *, forward: bool, eps: float = 1e-12) -> ArrayLike:
         # alt. we could use the public push/pull
         marginals = self.a if forward else self.b
@@ -275,21 +309,11 @@ class BaseSolverOutput(abc.ABC):
             marginals = marginals[:, None]
         return x / (marginals + eps)
 
-    def _format_params(self, fmt: Callable[[Any], str]) -> str:
-        params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
-        return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
-
     def __bool__(self) -> bool:
         return self.converged
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self._format_params(repr)}]"
 
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}[{self._format_params(str)}]"
-
-
-class MatrixSolverOutput(BaseSolverOutput):
+class MatrixSolverOutput(BaseDiscreteSolverOutput):
     """:term:`OT` solution with a materialized transport matrix.
 
     Parameters
@@ -329,12 +353,12 @@ class MatrixSolverOutput(BaseSolverOutput):
         return self._transport_matrix
 
     @property
-    def shape(self) -> Tuple[int, int]:  # noqa: D102
+    def shape(self) -> tuple[int, int]:  # noqa: D102
         return self.transport_matrix.shape  # type: ignore[return-value]
 
     def to(  # noqa: D102
         self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None
-    ) -> "BaseSolverOutput":
+    ) -> BaseDiscreteSolverOutput:
         if device is not None:
             logger.warning(f"`{self!r}` does not support the `device` argument, ignoring.")
         if dtype is None:
@@ -353,7 +377,7 @@ class MatrixSolverOutput(BaseSolverOutput):
         return self._converged
 
     @property
-    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
+    def potentials(self) -> Optional[tuple[ArrayLike, ArrayLike]]:  # noqa: D102
         return None
 
     @property
@@ -367,3 +391,38 @@ class MatrixSolverOutput(BaseSolverOutput):
         import jax.numpy as jnp
 
         return jnp.ones((n,), dtype=self.transport_matrix.dtype)
+
+
+class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
+    """Base class for output of."""
+
+    @abstractmethod
+    def project_to_transport_matrix(
+        self,
+        source: Optional[ArrayLike] = None,
+        target: Optional[ArrayLike] = None,
+        condition: Optional[ArrayLike] = None,
+        forward: bool = True,
+        save_transport_matrix: bool = False,
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """Project transport matrix."""
+        pass
+
+    @property
+    def transport_matrix(self):  # noqa: D102
+        raise NotImplementedError("Neural output does not require a transport matrix.")
+
+    @property
+    def cost(self):  # noqa: D102
+        raise NotImplementedError("Neural output does not implement a cost property.")
+
+    @property
+    def potentials(self):  # noqa: D102
+        raise NotImplementedError("Neural output does not need to implement a potentials property.")
+
+    def _ones(self, n: int):  # noqa: D102
+        raise NotImplementedError("Neural output does not need to implement a `_ones` property.")

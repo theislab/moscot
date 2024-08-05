@@ -10,7 +10,7 @@ from ott.solvers.linear import acceleration
 
 from anndata import AnnData
 
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import SinkhornProblem
 from tests._utils import _assert_marginals_set
@@ -55,7 +55,7 @@ class TestSinkhornProblem:
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
             assert subsol.converged
             assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
