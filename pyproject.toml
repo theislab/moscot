@@ -7,7 +7,7 @@ name = "moscot"
 dynamic = ["version"]
 description = "Multi-omic single-cell optimal transport tools"
 readme = "README.rst"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {file = "LICENSE"}
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -19,7 +19,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Typing :: Typed",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
@@ -262,7 +261,7 @@ max_line_length = 120
 legacy_tox_ini = """
 [tox]
 min_version = 4.0
-env_list = lint-code,py{3.8,3.9,3.10,3.11}
+env_list = lint-code,py{3.9,3.10,3.11}
 skip_missing_interpreters = true
 
 [testenv]
