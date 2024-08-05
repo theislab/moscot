@@ -416,7 +416,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 - ``'spearman'`` - `Spearman rank correlation <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
 
         device
-            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
         groupby
             Optional key in :attr:`~anndata.AnnData.obs`, containing categorical annotations for grouping.
         batch_size
