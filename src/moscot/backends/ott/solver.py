@@ -280,6 +280,9 @@ class SinkhornSolver(OTTJaxSolver):
         if rank > -1:
             kwargs.setdefault("gamma", 500)
             kwargs.setdefault("gamma_rescale", True)
+            eps = kwargs.get("epsilon")
+            if eps is not None and eps > 0.0:
+                logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
             initializer = "rank2" if initializer is None else initializer
             self._solver = sinkhorn_lr.LRSinkhorn(
                 rank=rank, epsilon=epsilon, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs
