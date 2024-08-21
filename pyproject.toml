@@ -64,6 +64,13 @@ dependencies = [
 spatial = [
     "squidpy>=1.2.3"
 ]
+
+neural = [
+    "optax",
+    "flax",
+    "diffrax",
+
+]
 dev = [
     "pre-commit>=3.0.0",
     "tox>=4",
