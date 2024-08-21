@@ -34,6 +34,7 @@ from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 from ott.solvers.utils import uniform_sampler
 
+from moscot._logging import logger
 from moscot._types import (
     ArrayLike,
     ProblemKind_t,
@@ -277,7 +278,7 @@ class SinkhornSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
-            kwargs.setdefault("gamma", 10)
+            kwargs.setdefault("gamma", 500)
             kwargs.setdefault("gamma_rescale", True)
             initializer = "rank2" if initializer is None else initializer
             self._solver = sinkhorn_lr.LRSinkhorn(
@@ -395,6 +396,9 @@ class GWSolver(OTTJaxSolver):
         if rank > -1:
             kwargs.setdefault("gamma", 10)
             kwargs.setdefault("gamma_rescale", True)
+            eps = kwargs.get("epsilon")
+            if eps is not None and eps > 0.0:
+                logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
             initializer = "rank2" if initializer is None else initializer
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
