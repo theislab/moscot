@@ -9,7 +9,7 @@ from ott.geometry import epsilon_scheduler
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.problems.cross_modality import TranslationProblem
 from tests.problems.conftest import (
     fgw_args_1,
@@ -122,7 +122,7 @@ class TestTranslationProblem:
             tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for key, subsol in tp.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
             assert tp[key].solution.rank == rank
 

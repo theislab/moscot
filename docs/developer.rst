@@ -12,6 +12,8 @@ Backends
     backends.ott.GWSolver
     backends.ott.OTTOutput
     backends.ott.GraphOTTOutput
+    backends.ott.GENOTLinSolver
+    backends.ott.output.OTTNeuralOutput
     backends.utils.get_solver
     backends.utils.get_available_backends
 
@@ -44,6 +46,7 @@ Problems
     problems.BaseCompoundProblem
     problems.CompoundProblem
     cost.BaseCost
+    problems.CondOTProblem
 
 Mixins
 ^^^^^^
@@ -62,14 +65,13 @@ Solvers
 
     solver.BaseSolver
     solver.OTSolver
-    output.BaseSolverOutput
 
 Output
 ^^^^^^
 .. autosummary::
     :toctree: genapi
 
-    output.BaseSolverOutput
+    output.BaseDiscreteSolverOutput
     output.MatrixSolverOutput
 
 Utils
@@ -100,6 +102,8 @@ Miscellaneous
     data.apoptosis_markers
     tagged_array.TaggedArray
     tagged_array.Tag
+    tagged_array.DistributionCollection
+    tagged_array.DistributionContainer
 
 .. currentmodule:: moscot.base.problems
 .. autosummary::

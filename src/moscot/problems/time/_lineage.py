@@ -241,7 +241,7 @@ class TemporalProblem(  # type: ignore[misc]
         max_iterations
             Maximum number of :term:`Sinkhorn` iterations.
         device
-            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
         kwargs
             Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
@@ -510,7 +510,7 @@ class LineageProblem(TemporalProblem):
         linear_solver_kwargs
             Keyword arguments for the inner :term:`linear problem` solver.
         device
-            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
         kwargs
             Keyword arguments for :meth:`~moscot.problems.time.TemporalProblem.solve`.

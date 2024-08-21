@@ -21,7 +21,7 @@ from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
 from moscot.backends.ott._utils import alpha_to_fused_penalty
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Geom_t
@@ -321,7 +321,7 @@ class TestSolverOutput:
         out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), xy=(x, y))
         p = out.push(a, scale_by_marginals=False)
 
-        assert isinstance(out, BaseSolverOutput)
+        assert isinstance(out, BaseDiscreteSolverOutput)
         assert isinstance(p, jnp.ndarray)
         if batched:
             assert p.shape == (out.shape[1], ndim)
@@ -347,7 +347,7 @@ class TestSolverOutput:
         out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, xy=(xx, yy))
         p = out.pull(b, scale_by_marginals=False)
 
-        assert isinstance(out, BaseSolverOutput)
+        assert isinstance(out, BaseDiscreteSolverOutput)
         assert isinstance(p, jnp.ndarray)
         if batched:
             assert p.shape == (out.shape[0], ndim)

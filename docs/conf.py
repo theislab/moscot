@@ -63,12 +63,24 @@ pygments_dark_style = "monokai"
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.float64"),
+    # see: https://github.com/numpy/numpydoc/issues/275
+    ("py:class", "None.  Remove all items from D."),
+    ("py:class", "a set-like object providing a view on D's items"),
+    ("py:class", "a set-like object providing a view on D's keys"),
+    ("py:class", "v, remove specified key and return the corresponding value."),  # noqa: E501
+    ("py:class", "None.  Update D from dict/iterable E and F."),
+    ("py:class", "an object providing a view on D's values"),
+    ("py:class", "a shallow copy of D"),
 ]
 # TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [
     (r"py:class", r"moscot\..*(K|B|O)"),
     (r"py:class", r"numpy\._typing.*"),
     (r"py:class", r"moscot\..*Protocol.*"),
+    (
+        r"py:class",
+        r"moscot.base.output.BaseSolverOutput",
+    ),  # https://github.com/sphinx-doc/sphinx/issues/10974 means there is simply no way around this with generics
 ]
 
 

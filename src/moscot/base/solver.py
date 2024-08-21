@@ -14,15 +14,17 @@ from typing import (
     Union,
 )
 
+import numpy as np
+
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
 
 
-O = TypeVar("O", bound=BaseSolverOutput)
+O = TypeVar("O", bound=BaseDiscreteSolverOutput)
 
 
 class TaggedArrayData(NamedTuple):  # noqa: D101
@@ -52,6 +54,9 @@ class TagConverter:  # noqa: D101
         loss_xy = {k[3:]: v for k, v in kwargs.items() if k.startswith("xy_")}
         loss_x = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         loss_y = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+
+        if isinstance(xy, dict) and np.all([isinstance(v, tuple) for v in xy.values()]):  # handling joint learning
+            return xy
 
         # fmt: off
         xy = xy if isinstance(xy, TaggedArray) else self._convert(*to_tuple(xy), tag=tags.get("xy", None), **loss_xy)
@@ -146,7 +151,7 @@ class BaseSolver(Generic[O], abc.ABC):
     def _partition_kwargs(cls, **kwargs: Any) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Partition keyword arguments.
 
-        Used by the :meth:`~moscot.problems.base.BaseProblem.solve`.
+        Used by the :meth:`~moscot.base.problems.problem.BaseProblem.solve`.
 
         Parameters
         ----------
@@ -189,7 +194,9 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         tags
             How to interpret the data in ``xy``, ``x`` and ``y``.
         device
-            Device to transfer the output to, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device to transfer the output to, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
+        is_conditional
+            Whether the OT problem is conditional.
         kwargs
             Keyword arguments for parent's :meth:`__call__`.
 
@@ -197,8 +204,9 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
-        data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
-        kwargs = {**kwargs, **self._untag(data)}
+        if not kwargs.get("is_conditional", False):  # signals that this is a neural problem
+            data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
+            kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")

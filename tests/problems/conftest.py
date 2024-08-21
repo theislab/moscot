@@ -257,3 +257,10 @@ lin_prob_args = {
     "tau_a": "tau_a",
     "tau_b": "tau_b",
 }
+
+neurallin_cond_args_1 = {
+    "batch_size": 8,
+    "seed": 0,
+    "iterations": 2,
+    "valid_freq": 4,
+}

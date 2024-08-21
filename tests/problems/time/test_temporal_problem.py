@@ -13,7 +13,7 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot.backends.ott.output import GraphOTTOutput
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
@@ -63,7 +63,7 @@ class TestTemporalProblem:
 
         assert isinstance(problem[0, 1].xy.cost, costs.Cosine)
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_solve_unbalanced(self, adata_time: AnnData):
@@ -361,7 +361,7 @@ class TestTemporalProblem:
 
         assert problem[0, 1].xy.cost == "geodesic"
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
         if "n_neighbors" in callback_kwargs:
