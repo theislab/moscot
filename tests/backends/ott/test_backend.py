@@ -51,7 +51,8 @@ class TestSinkhorn:
     @pytest.mark.parametrize("initializer", ["random", "rank2", "k-means"])
     def test_solver_rank(self, y: Geom_t, rank: Optional[int], initializer: str):
         eps = 1e-2
-        lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer)
+        default_gamma_lr_sinhorn = 500
+        lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer, gamma=default_gamma_lr_sinhorn)
         problem = LinearProblem(PointCloud(y, epsilon=eps))
         gt = lr_sinkhorn(problem)
 
