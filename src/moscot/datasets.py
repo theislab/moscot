@@ -550,22 +550,10 @@ def _load_dataset_from_url(
         fpath += ".h5mu"
     from scanpy.readwrite import _check_datafile_present_and_download
 
-    if not os.path.exists(fpath):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = pathlib.Path(tmpdir) / f"data.{type}"
-            _check_datafile_present_and_download(backup_url=backup_url, path=tmp)
-            if type == "h5ad":
-                data = ad.read_h5ad(filename=tmp, **kwargs)
-            if type == "h5mu":
-                data = mudata.read(tmp, **kwargs)
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(fpath)
-            shutil.move(tmp, fpath)
+    if not os.path.exists(fpath) or force_download:
+        _check_datafile_present_and_download(backup_url=backup_url, path=fpath)
     else:
-        if type == "h5ad":
-            data = ad.read_h5ad(filename=fpath, **kwargs)
-        else:
-            raise NotImplementedError("MuData download only available with `force_download=True`.")
+        data = ad.read_h5ad(filename=fpath, **kwargs) if type == "h5ad" else mu.read_h5mu(filename=fpath, backed=False)
 
     if data.shape != expected_shape:
         data_str = "MuData" if type == "h5mu" else "AnnData"
