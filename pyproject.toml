@@ -7,7 +7,7 @@ name = "moscot"
 dynamic = ["version"]
 description = "Multi-omic single-cell optimal transport tools"
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {file = "LICENSE"}
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -232,7 +232,7 @@ ignore_roles = [
 
 [tool.mypy]
 mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
-python_version = "3.9"
+python_version = "3.10"
 plugins = "numpy.typing.mypy_plugin"
 
 ignore_errors = false
@@ -269,7 +269,7 @@ max_line_length = 120
 legacy_tox_ini = """
 [tox]
 min_version = 4.0
-env_list = lint-code,py{3.9,3.10,3.11}
+env_list = lint-code,py{3.10,3.11,3.12}
 skip_missing_interpreters = true
 
 [testenv]
