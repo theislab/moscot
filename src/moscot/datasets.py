@@ -548,11 +548,11 @@ def _load_dataset_from_url(
 
     if type == "h5mu" and not fpath.endswith(".h5mu"):
         fpath += ".h5mu"
-
+    from scanpy.readwrite import _check_datafile_present_and_download
     if not os.path.exists(fpath):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = pathlib.Path(tmpdir) / f"data.{type}"
-            urllib.request.urlretrieve(backup_url, tmp)
+            _check_datafile_present_and_download(backup_url=backup_url, path=tmp)
             if type == "h5ad":
                 data = ad.read_h5ad(filename=tmp, **kwargs)
             if type == "h5mu":
