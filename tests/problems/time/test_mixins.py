@@ -13,7 +13,7 @@ from tests._utils import MockSolverOutput
 
 
 class TestTemporalMixin:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
         config = gt_temporal_adata.uns
@@ -51,7 +51,7 @@ class TestTemporalMixin:
         present_cell_type_marginal = marginal[marginal > 0]
         np.testing.assert_allclose(present_cell_type_marginal, 1.0)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("batch_size", [3, 7, None])
@@ -81,7 +81,7 @@ class TestTemporalMixin:
             )
         assert (result[annotation_label] == expected_result).all()
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_different_groups(self, gt_temporal_adata: AnnData, forward: bool):
         config = gt_temporal_adata.uns
@@ -111,7 +111,7 @@ class TestTemporalMixin:
         assert set(result.index) == cell_types
         assert set(result.columns) == batches
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
         config = gt_temporal_adata.uns
@@ -339,7 +339,7 @@ class TestTemporalMixin:
         np.testing.assert_allclose(result, gt_temporal_adata.uns["random_distance_10_105_11"], rtol=1e-6, atol=1e-6)
 
     # TODO(MUCDK): split into 2 tests
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("only_start", [True, False])
     def test_get_data_pipeline(self, adata_time: AnnData, only_start: bool):
         problem = TemporalProblem(adata_time)
@@ -379,7 +379,7 @@ class TestTemporalMixin:
             inter_param = problem._get_interp_param(start, intermediate, end, interpolation_parameter)
             assert inter_param == 0.5
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_cell_transition_regression_notparam(
         self,
         adata_time_with_tmap: AnnData,
@@ -399,7 +399,7 @@ class TestTemporalMixin:
         # TODO(MUCDK): use pandas.testing
         np.testing.assert_allclose(res.values, df_expected.values, rtol=1e-6, atol=1e-6)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("temporal_key", ["celltype", "time", "missing"])
     def test_temporal_key_numeric(self, adata_time: AnnData, temporal_key: str):
         problem = TemporalProblem(adata_time)

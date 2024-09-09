@@ -27,7 +27,7 @@ from tests.problems.conftest import (
 
 
 class TestSinkhornProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("policy", ["sequential", "star"])
     def test_prepare(self, adata_time: AnnData, policy, marginal_keys):
         expected_keys = {"sequential": [(0, 1), (1, 2)], "star": [(1, 0), (2, 0)]}
@@ -61,7 +61,7 @@ class TestSinkhornProblem:
             assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
             assert np.allclose(subsol.b, problem[key].b, atol=1e-5)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         ("cost_str", "cost_inst", "cost_kwargs"),
         [
@@ -83,7 +83,7 @@ class TestSinkhornProblem:
 
         problem = problem.solve(max_iterations=2)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         ("cost_str", "cost_inst", "cost_kwargs"),
         [

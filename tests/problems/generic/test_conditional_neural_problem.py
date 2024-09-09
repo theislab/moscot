@@ -15,7 +15,7 @@ from tests.problems.conftest import neurallin_cond_args_1
 
 
 class TestGENOTLinProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prepare(self, adata_time: ad.AnnData):
         problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
