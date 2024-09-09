@@ -1,15 +1,10 @@
-import contextlib
 import os
-import pathlib
 import pickle
-import shutil
-import tempfile
 import urllib.request
 from itertools import combinations
 from types import MappingProxyType
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
-import mudata
 import mudata as mu
 
 import networkx as nx
