@@ -13,11 +13,9 @@ import pandas as pd
 from scipy.linalg import block_diag
 
 import anndata as ad
-
-from moscot._types import PathLike
-
 from scanpy.readwrite import _check_datafile_present_and_download
 
+from moscot._types import PathLike
 
 __all__ = [
     "mosta",
