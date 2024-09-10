@@ -10,8 +10,8 @@ try:
 
     ArrayLike = NDArray[np.float64]
 except (ImportError, TypeError):
-    ArrayLike = np.ndarray  # type: ignore[misc]
-    DTypeLike = np.dtype  # type: ignore[misc]
+    ArrayLike = np.ndarray
+    DTypeLike = np.dtype
 
 ProblemKind_t = Literal["linear", "quadratic", "unknown"]
 Numeric_t = Union[int, float]  # type of `time_key` arguments

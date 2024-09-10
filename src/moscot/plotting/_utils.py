@@ -463,7 +463,7 @@ def _plot_scatter(
                 _ = kwargs.pop("palette", None)
                 if (time_points[i] == source and push) or (time_points[i] == target and not push):
                     st = f"not in {time_points[i]}"
-                    vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
+                    vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])  # type: ignore[var-annotated]
                     column = pd.Series(tmp).fillna(st).astype("category")
                     # TODO(michalk8): check
                     if len(np.unique(column[mask.values].values)) > 2:

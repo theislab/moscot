@@ -42,7 +42,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     _spatial_key: Optional[str]
     batch_key: Optional[str]
 
-    def _subset_spatial(  # type:ignore[empty-body]
+    def _subset_spatial(
         self: "SpatialAlignmentMixinProtocol[K, B]",
         k: K,
         spatial_key: str,
@@ -780,13 +780,13 @@ def _compute_correspondence(
 
     def pdist(row_idx: ArrayLike, col_idx: float, feat: ArrayLike) -> Any:
         if len(row_idx) > 0:
-            return pairwise_distances(feat[row_idx, :], feat[[col_idx], :]).mean()  # type: ignore[index]
+            return pairwise_distances(feat[row_idx, :], feat[[col_idx], :]).mean()
         return np.nan
 
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.toarray()  # type: ignore[attr-defined]
+        features = features.toarray()
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):
