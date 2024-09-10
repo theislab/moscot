@@ -14,7 +14,6 @@ from typing import (
     Union,
 )
 
-
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseDiscreteSolverOutput
