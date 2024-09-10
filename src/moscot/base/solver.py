@@ -14,7 +14,6 @@ from typing import (
     Union,
 )
 
-import numpy as np
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
