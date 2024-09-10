@@ -55,9 +55,6 @@ class TagConverter:  # noqa: D101
         loss_x = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         loss_y = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
 
-        if isinstance(xy, dict) and np.all([isinstance(v, tuple) for v in xy.values()]):  # handling joint learning
-            return xy
-
         # fmt: off
         xy = xy if isinstance(xy, TaggedArray) else self._convert(*to_tuple(xy), tag=tags.get("xy", None), **loss_xy)
         x = x if isinstance(x, TaggedArray) else self._convert(*to_tuple(x), tag=tags.get("x", None), **loss_x)
