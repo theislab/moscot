@@ -375,8 +375,8 @@ class OTTNeuralOutput(BaseNeuralOutput):
         The projected transport matrix.
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
-        push: Callable[[Any], Any] = self.push if condition is None else lambda x: self.push(x, condition)  # type: ignore
-        pull: Callable[[Any], Any] = self.pull if condition is None else lambda x: self.pull(x, condition)  # type: ignore
+        push = self.push if condition is None else lambda x: self.push(x, condition)
+        pull = self.pull if condition is None else lambda x: self.pull(x, condition)
         func, src_dist, tgt_dist = (push, src_cells, tgt_cells) if forward else (pull, tgt_cells, src_cells)
         return self._project_transport_matrix(
             src_dist=src_dist,
