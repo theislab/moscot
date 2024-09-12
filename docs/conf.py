@@ -55,6 +55,7 @@ intersphinx_mapping = {
     "anndata": ("https://anndata.readthedocs.io/en/latest/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/latest/", None),
     "squidpy": ("https://squidpy.readthedocs.io/en/latest/", None),
+    "mudata": ("https://mudata.readthedocs.io/en/latest/", None),
 }
 master_doc = "index"
 pygments_style = "tango"
