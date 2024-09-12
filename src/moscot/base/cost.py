@@ -53,12 +53,12 @@ class BaseCost(abc.ABC):
         """
         cost = self._compute(*args, **kwargs)
         if np.any(np.isnan(cost)):
-            maxx = np.nanmax(cost)
+            maxx = np.nanmax(cost)  # type: ignore[var-annotated]
             logger.warning(
                 f"Cost matrix contains `{np.sum(np.isnan(cost))}` NaN values, "
                 f"setting them to the maximum value `{maxx}`."
             )
-            cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]
+            cost = np.nan_to_num(cost, nan=maxx)
         if np.any(cost < 0):
             raise ValueError(f"Cost matrix contains `{np.sum(cost < 0)}` negative values.")
         return cost

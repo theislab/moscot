@@ -183,7 +183,7 @@ class BaseProblem(abc.ABC, metaclass=CombinedMeta):
                 if start >= adata.n_obs:
                     raise IndexError(f"Expected starting index to be smaller than `{adata.n_obs}`, found `{start}`.")
                 data = np.zeros((adata.n_obs,), dtype=float)
-                data[range(start, min(start + offset, adata.n_obs))] = 1.0
+                data[range(start, min(start + offset, adata.n_obs))] = 1.0  # type: ignore[index]
             else:
                 raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
         elif not hasattr(data, "shape"):

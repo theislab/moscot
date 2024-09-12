@@ -386,7 +386,7 @@ def _correlation_test_helper(
         corr_bs = np.concatenate(corr_bs, axis=0)
         corr_ci_low, corr_ci_high = np.quantile(corr_bs, q=ql, axis=0), np.quantile(corr_bs, q=qh, axis=0)
 
-        return pvals, corr_ci_low, corr_ci_high  # type:ignore[return-value]
+        return pvals, corr_ci_low, corr_ci_high
 
     if not (0 <= confidence_level <= 1):
         raise ValueError(f"Expected `confidence_level` to be in interval `[0, 1]`, found `{confidence_level}`.")

@@ -25,7 +25,7 @@ from tests.problems.conftest import (
 
 
 class TestTranslationProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
@@ -50,7 +50,7 @@ class TestTranslationProblem:
         assert tp[prob_key].shape == (2 * n_obs, n_obs)
         np.testing.assert_array_equal(tp._policy._cat, prob_key)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])

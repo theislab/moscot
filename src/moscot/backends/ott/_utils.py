@@ -108,7 +108,7 @@ def densify(arr: ArrayLike) -> jax.Array:
     dense :mod:`jax` array.
     """
     if sp.issparse(arr):
-        arr = arr.toarray()  # type: ignore[attr-defined]
+        arr = arr.toarray()
     elif isinstance(arr, jesp.BCOO):
         arr = arr.todense()
     return jnp.asarray(arr)

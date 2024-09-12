@@ -138,7 +138,7 @@ def _scaled_hamming_dist(x: ArrayLike, y: ArrayLike) -> float:
         raise ValueError("No shared indices.")
     b2 = y[shared_indices]
 
-    differences = b1 != b2
-    double_scars = differences & (b1 != 0) & (b2 != 0)
+    differences: ArrayLike = b1 != b2
+    double_scars: ArrayLike = differences & (b1 != 0) & (b2 != 0)
 
-    return (np.sum(differences) + np.sum(double_scars)) / len(b1)
+    return float(float(np.sum(differences)) + np.sum(double_scars)) / len(b1)
