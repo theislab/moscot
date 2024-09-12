@@ -8,7 +8,7 @@ from anndata import AnnData
 from moscot.datasets import _get_random_trees
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time_trees(adata_time: AnnData) -> AnnData:
     trees = _get_random_trees(
         n_leaves=96, n_trees=3, leaf_names=[list(adata_time[adata_time.obs.time == i].obs.index) for i in range(3)]
@@ -17,7 +17,7 @@ def adata_time_trees(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
     cost_m1 = np.abs(rng.randn(96, 96))
@@ -27,14 +27,14 @@ def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time_barcodes(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
     adata_time.obsm["barcodes"] = rng.randn(len(adata_time), 30)
     return adata_time
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time_marginal_estimations(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
     adata_time.obs["proliferation"] = rng.randn(len(adata_time))

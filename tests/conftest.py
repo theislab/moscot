@@ -39,7 +39,7 @@ def _close_figure():
     plt.close()
 
 
-@pytest.fixture()
+@pytest.fixture
 def x() -> Geom_t:
     rng = np.random.RandomState(0)
     n = 20  # number of points in the first distribution
@@ -51,7 +51,7 @@ def x() -> Geom_t:
     return jnp.asarray(xs)
 
 
-@pytest.fixture()
+@pytest.fixture
 def y() -> Geom_t:
     rng = np.random.RandomState(1)
     n2 = 30  # number of points in the second distribution
@@ -63,7 +63,7 @@ def y() -> Geom_t:
     return jnp.asarray(xt)
 
 
-@pytest.fixture()
+@pytest.fixture
 def xy() -> Tuple[Geom_t, Geom_t]:
     rng = np.random.RandomState(2)
     n = 20  # number of points in the first distribution
@@ -83,36 +83,36 @@ def xy() -> Tuple[Geom_t, Geom_t]:
     return jnp.asarray(ys), jnp.asarray(yt)
 
 
-@pytest.fixture()
+@pytest.fixture
 def ab() -> Tuple[np.ndarray, np.ndarray]:
     rng = np.random.RandomState(42)
     return rng.normal(size=(20, 2)), rng.normal(size=(30, 4))
 
 
-@pytest.fixture()
+@pytest.fixture
 def x_cost(x: Geom_t) -> jnp.ndarray:
     return ((x[:, None, :] - x[None, ...]) ** 2).sum(-1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def y_cost(y: Geom_t) -> jnp.ndarray:
     return ((y[:, None, :] - y[None, ...]) ** 2).sum(-1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def xy_cost(xy: Geom_t) -> jnp.ndarray:
     x, y = xy
     return ((x[:, None, :] - y[None, ...]) ** 2).sum(-1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_x(x: Geom_t) -> AnnData:
     rng = np.random.RandomState(43)
     pc = rng.normal(size=(len(x), 4))
     return AnnData(X=np.asarray(x, dtype=float), obsm={"X_pca": pc})
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_y(y: Geom_t) -> AnnData:
     rng = np.random.RandomState(44)
     pc = rng.normal(size=(len(y), 4))
@@ -126,7 +126,7 @@ def creat_prob(n: int, *, uniform: bool = False, seed: Optional[int] = None) -> 
     return jnp.asarray(a)
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
 
@@ -156,7 +156,7 @@ def adata_time() -> AnnData:
     return adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def gt_temporal_adata() -> AnnData:
     adata = _gt_temporal_adata.copy()
     # TODO(michalk8): remove both lines once data has been regenerated
@@ -165,7 +165,7 @@ def gt_temporal_adata() -> AnnData:
     return adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_space_rotate() -> AnnData:
     rng = np.random.RandomState(31)
     grid = _make_grid(10)
@@ -182,7 +182,7 @@ def adata_space_rotate() -> AnnData:
     return adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_mapping() -> AnnData:
     grid = _make_grid(10)
     adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17, cat_key="covariate", num_categories=3)
@@ -190,7 +190,7 @@ def adata_mapping() -> AnnData:
     return ad.concat([adataref, adata1, adata2], label="batch", join="outer", index_unique="-")
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_translation() -> AnnData:
     rng = np.random.RandomState(31)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60)))) for _ in range(3)]
@@ -202,7 +202,7 @@ def adata_translation() -> AnnData:
     return adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
     rng = np.random.RandomState(15)
     adata_src = adata_translation[adata_translation.obs.batch != "0"].copy()
@@ -212,7 +212,7 @@ def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
     return adata_src, adata_tgt
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_anno(
     problem_kind: Literal["temporal", "cross_modality", "alignment", "mapping"],
 ) -> Union[AnnData, Tuple[AnnData, AnnData]]:
@@ -258,7 +258,7 @@ def adata_anno(
     return adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def gt_tm_annotation() -> np.ndarray:
     tm = np.zeros((10, 15))
     for i in range(10):

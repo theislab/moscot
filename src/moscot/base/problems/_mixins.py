@@ -388,7 +388,7 @@ class AnalysisMixin(Generic[K, B]):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[Numeric_t] = None,
         seed: Optional[int] = None,
-    ) -> tuple[list[Any], list[ArrayLike]]:
+    ) -> tuple[Any, list[str]]:
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
             raise ValueError("When accounting for unbalancedness, interpolation parameter must be provided.")
@@ -453,7 +453,7 @@ class AnalysisMixin(Generic[K, B]):
                 for i in range(len(rows_batch))
             ]
             all_cols_sampled.extend(cols_sampled)
-        return rows, all_cols_sampled  # type: ignore[return-value]
+        return rows, all_cols_sampled
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],

@@ -10,7 +10,7 @@ from anndata import AnnData
 from tests._utils import Geom_t
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t) -> AnnData:
     adata = ad.concat([adata_x, adata_y], label="batch", index_unique="-")
     C = pairwise_distances(adata_x.obsm["X_pca"], adata_y.obsm["X_pca"]) ** 2
@@ -19,7 +19,7 @@ def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t) -> AnnData:
     return adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time_with_tmap(adata_time: AnnData) -> AnnData:
     adata = adata_time[adata_time.obs["time"].isin([0, 1])].copy()
     rng = np.random.RandomState(42)

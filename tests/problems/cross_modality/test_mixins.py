@@ -65,7 +65,7 @@ class TestCrossModalityTranslationAnalysisMixin:
             trans_backward = tp.translate(source=src, target=tgt, forward=False, alternative_attr=alternative_attr)
             assert trans_backward.shape == adata_src[adata_src.obs["batch"] == "1"].obsm["X_pca"].shape
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
     def test_cell_transition_pipeline(
@@ -107,7 +107,7 @@ class TestCrossModalityTranslationAnalysisMixin:
         with pytest.raises(AssertionError):
             pd.testing.assert_frame_equal(result1, result2)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("batch_size", [3, 7, None])

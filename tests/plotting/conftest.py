@@ -24,7 +24,7 @@ TOL = 60
 DPI = 40
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
     plot_vars = {
         "transition_matrix": gt_temporal_adata.uns["cell_transition_10_105_forward"],
@@ -38,7 +38,7 @@ def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
     return gt_temporal_adata
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_pl_push(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
     plot_vars = {"key": "time", "data": "celltype", "subset": "A", "source": 0, "target": 1}
@@ -57,7 +57,7 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_pl_pull(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
     plot_vars = {"key": "time", "data": "celltype", "subset": "A", "source": 0, "target": 1}
@@ -75,7 +75,7 @@ def adata_pl_pull(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_pl_sankey(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
     celltypes = ["A", "B", "C", "D", "E"]

@@ -6,7 +6,7 @@ import pandas as pd
 from anndata import AnnData
 
 
-@pytest.fixture()
+@pytest.fixture
 def adata_time_with_tmap(adata_time: AnnData) -> AnnData:
     adata = adata_time[adata_time.obs["time"].isin([0, 1])].copy()
     rng = np.random.RandomState(42)

@@ -139,6 +139,10 @@ linkcheck_ignore = [
     r"https://doi.org/10.1126/science.aax1971",
     r"https://doi.org/10.1093/nar/gkac235",
     r"https://www.science.org/doi/abs/10.1126/science.aax1971",
+    r"https://doi.org/10.1101/2022.01.10.475692",
+    r"https://www.biorxiv.org/content/10.1101/2023.04.14.536867v1",
+    r"https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2",
+    r"https://www.biorxiv.org/content/early/2022/01/11/2022.01.10.475692",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]

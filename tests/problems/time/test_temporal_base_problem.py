@@ -11,7 +11,7 @@ from moscot.base.problems import BirthDeathProblem
 
 # TODO(@MUCDK) put file in different folder according to moscot.problems structure
 class TestBirthDeathProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_initialization_pipeline(self, adata_time_marginal_estimations: AnnData):
         t1, t2 = 0, 1
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
@@ -35,7 +35,7 @@ class TestBirthDeathProblem:
         assert isinstance(prob.b, np.ndarray)
 
     # TODO(MUCDK): break this test
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         "adata_obs_keys",
         [
@@ -77,7 +77,7 @@ class TestBirthDeathProblem:
             if not source:
                 assert len(np.unique(a_estimated)) == 1
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prior_growth_rates(self, adata_time_marginal_estimations: AnnData):
         t1, t2 = 0, 1
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
@@ -117,7 +117,7 @@ class TestBirthDeathProblem:
         gr = prob.posterior_growth_rates
         assert isinstance(gr, np.ndarray)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         "marginal_kwargs", [{}, {"delta_width": 0.9}, {"delta_center": 0.9}, {"beta_width": 0.9}, {"beta_center": 0.9}]
     )
