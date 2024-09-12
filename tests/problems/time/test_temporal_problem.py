@@ -31,7 +31,7 @@ from tests.problems.conftest import (
 
 
 class TestTemporalProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prepare(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time)
@@ -90,7 +90,7 @@ class TestTemporalProblem:
         div2 = np.linalg.norm(problem1[0, 1].b - problem1[0, 1].solution.b)
         assert div1 < div2
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         "gene_set_list",
         [
@@ -122,7 +122,7 @@ class TestTemporalProblem:
         else:
             assert problem.apoptosis_key is None
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_proliferation_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
         assert problem.proliferation_key is None
@@ -134,7 +134,7 @@ class TestTemporalProblem:
         problem.proliferation_key = "new_proliferation"
         assert problem.proliferation_key == "new_proliferation"
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_apoptosis_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
         assert problem.apoptosis_key is None
@@ -146,7 +146,7 @@ class TestTemporalProblem:
         problem.apoptosis_key = "new_apoptosis"
         assert problem.apoptosis_key == "new_apoptosis"
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("scaling", [0.1, 1, 4])
     def test_proliferation_key_c_pipeline(self, adata_time: AnnData, scaling: float):
         key0, key1, *_ = np.sort(np.unique(adata_time.obs["time"].values))

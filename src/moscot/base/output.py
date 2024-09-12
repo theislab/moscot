@@ -354,7 +354,7 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
 
     @property
     def shape(self) -> tuple[int, int]:  # noqa: D102
-        return self.transport_matrix.shape  # type: ignore[return-value]
+        return self.transport_matrix.shape
 
     def to(  # noqa: D102
         self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None

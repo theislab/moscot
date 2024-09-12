@@ -9,7 +9,7 @@ from moscot.datasets import simulate_data
 
 
 class TestSimulateData:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("n_distributions", [2, 4])
     @pytest.mark.parametrize("key", ["batch", "day"])
     def test_n_distributions(self, n_distributions: int, key: str):
@@ -17,7 +17,7 @@ class TestSimulateData:
         assert key in adata.obs.columns
         assert adata.obs[key].nunique() == n_distributions
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("obs_to_add", [{"celltype": 2}, {"celltype": 5, "cluster": 4}])
     def test_obs_to_add(self, obs_to_add: Mapping[str, int]):
         adata = simulate_data(obs_to_add=obs_to_add)
@@ -26,7 +26,7 @@ class TestSimulateData:
             assert colname in adata.obs.columns
             assert adata.obs[colname].nunique() == k
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("spatial_dim", [None, 2, 3])
     def test_quad_term_spatial(self, spatial_dim: Optional[int]):
         kwargs = {}
@@ -40,7 +40,7 @@ class TestSimulateData:
         else:
             assert adata.obsm["spatial"].shape[1] == spatial_dim
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("n_intBCs", [None, 4, 7])
     @pytest.mark.parametrize("barcode_dim", [None, 5, 8])
     def test_quad_term_barcode(self, n_intBCs: Optional[int], barcode_dim: Optional[int]):
@@ -63,7 +63,7 @@ class TestSimulateData:
         else:
             assert len(np.unique(adata.obsm["barcode"])) <= n_intBCs
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("n_initial_nodes", [None, 4, 7])
     @pytest.mark.parametrize("n_distributions", [3, 6])
     def test_quad_term_tree(self, n_initial_nodes: Optional[int], n_distributions: int):

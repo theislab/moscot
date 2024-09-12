@@ -22,7 +22,6 @@ import optax
 import jax
 import jax.numpy as jnp
 import numpy as np
-import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.neural.datasets import OTData, OTDataset
 from ott.neural.methods.flows import dynamics, genot
@@ -651,15 +650,6 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             MultiLoader(datasets=train_loaders, seed=seed),
             MultiLoader(datasets=validate_loaders, seed=seed),
         )
-
-    @staticmethod
-    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]   # noqa:E501
-        if allow_reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))
-        if arr.ndim != 2:
-            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-        return arr
 
     def _split_data(  # TODO: adapt for Gromov terms
         self,

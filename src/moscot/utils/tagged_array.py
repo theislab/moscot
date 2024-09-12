@@ -167,7 +167,7 @@ class TaggedArray:
             x, y = self.data_src, (self.data_src if self.data_tgt is None else self.data_tgt)
             return x.shape[0], y.shape[0]
 
-        return self.data_src.shape  # type: ignore[return-value]
+        return self.data_src.shape
 
     @property
     def is_cost_matrix(self) -> bool:

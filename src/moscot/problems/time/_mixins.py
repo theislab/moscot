@@ -587,7 +587,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
-                np.asarray(problem.solution.potentials[0]),  # type: ignore[union-attr,index]
+                np.asarray(problem.solution.potentials[0]),
                 index=problem.adata_src.obs_names,
                 columns=cols,
             )
@@ -612,7 +612,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
-                np.array(problem.solution.potentials[1]),  # type: ignore[union-attr,index]
+                np.array(problem.solution.potentials[1]),
                 index=problem.adata_tgt.obs_names,
                 columns=cols,
             )
@@ -664,7 +664,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise ValueError(f"No data found for `{target}` time point.")
 
-        return (  # type:ignore[return-value]
+        return (
             source_data,
             growth_rates_source,
             intermediate_data,

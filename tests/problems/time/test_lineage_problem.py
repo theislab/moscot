@@ -26,7 +26,7 @@ from tests.problems.conftest import (
 
 
 class TestLineageProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prepare(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_barcodes)
@@ -94,7 +94,7 @@ class TestLineageProblem:
         div2 = np.linalg.norm(problem1[0, 1].b - problem1[0, 1].solution.b)
         assert div1 < div2
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         "gene_set_list",
         [
@@ -126,7 +126,7 @@ class TestLineageProblem:
         else:
             assert problem.apoptosis_key is None
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_proliferation_key_pipeline(self, adata_time_barcodes: AnnData):
         problem = LineageProblem(adata_time_barcodes)
         assert problem.proliferation_key is None
@@ -138,7 +138,7 @@ class TestLineageProblem:
         problem.proliferation_key = "new_proliferation"
         assert problem.proliferation_key == "new_proliferation"
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_apoptosis_key_pipeline(self, adata_time_barcodes: AnnData):
         problem = LineageProblem(adata_time_barcodes)
         assert problem.apoptosis_key is None
@@ -150,7 +150,7 @@ class TestLineageProblem:
         problem.apoptosis_key = "new_apoptosis"
         assert problem.apoptosis_key == "new_apoptosis"
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("scaling", [0.1, 1, 4])
     def test_proliferation_key_c_pipeline(self, adata_time_barcodes: AnnData, scaling: float):
         key0, key1, *_ = np.sort(np.unique(adata_time_barcodes.obs["time"].values))
@@ -173,7 +173,7 @@ class TestLineageProblem:
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
         np.testing.assert_allclose(problem[key0, key1]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_barcodes_pipeline(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_barcodes)

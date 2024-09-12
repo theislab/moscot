@@ -65,7 +65,7 @@ class TestSpatialAlignmentAnalysisMixin:
                 np.array(sol[k].transport_matrix), np.array(ap.solutions[k].transport_matrix), decimal=3
             )
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
     def test_cell_transition_pipeline(self, adata_space_rotate: AnnData, forward: bool, normalize: bool):
@@ -93,7 +93,7 @@ class TestSpatialAlignmentAnalysisMixin:
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 3)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("batch_size", [3, 7, None])
@@ -187,7 +187,7 @@ class TestSpatialMappingAnalysisMixin:
                 np.array(sol[k].transport_matrix), np.array(mp.solutions[k].transport_matrix), decimal=3
             )
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
     def test_cell_transition_pipeline(self, adata_mapping: AnnData, forward: bool, normalize: bool):
@@ -215,7 +215,7 @@ class TestSpatialMappingAnalysisMixin:
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 4)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("batch_size", [3, 7, None])
