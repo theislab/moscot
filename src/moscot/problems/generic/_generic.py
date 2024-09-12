@@ -37,7 +37,7 @@ def set_quad_defaults(z: Optional[Union[str, Mapping[str, Any]]]) -> Dict[str, s
     raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict` if no callback is provided.")
 
 
-class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
+class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
     """Class for solving a :term:`linear problem`.
 
     Parameters
@@ -264,7 +264,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
 
 
-class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
+class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
     """Class for solving the :term:`GW <Gromov-Wasserstein>` or :term:`FGW <fused Gromov-Wasserstein>` problems.
 
     Parameters
