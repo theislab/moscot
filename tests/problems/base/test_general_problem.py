@@ -1,6 +1,6 @@
+import re
 from typing import Literal, Optional, Tuple
 
-import re
 import pytest
 
 import jax.numpy as jnp
@@ -354,7 +354,6 @@ class TestOTProblem:
             ({"xy"}, 0.5, "type-error"),
             ({"xy", "x", "y"}, 0, re.escape("Expected `alpha` to be in interval `(0, 1]`, found")),
             ({"xy", "x", "y"}, 1.1, re.escape("Expected `alpha` to be in interval `(0, 1]`, found")),
-            # ({"xy", "x"}, 0.1, re.escape("Unable to prepare the data. Either only supply")), -> this is covered by prepare
             ({"xy", "x", "y"}, 0.5, None),
             ({"x", "y"}, 1.0, None),
             ({"x", "y"}, 0.5, re.escape("Expected `xy` to be `None` if `alpha` is not 1.0, found")),

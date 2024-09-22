@@ -1,7 +1,7 @@
+import re
 from pathlib import Path
 from typing import Any, List, Literal, Mapping, Optional, Union
 
-import re
 import pytest
 
 import numpy as np

@@ -84,7 +84,7 @@ class TestAlignmentProblem:
             (1, 0.5, 10, "rank2", False),
             (0.1, 0.1, -1, None, False),
             (0.1, -0.1, -1, None, True),  # Invalid alpha
-            (0.1, 1.1, -1, None, True),   # Invalid alpha
+            (0.1, 1.1, -1, None, True),  # Invalid alpha
         ],
     )
     def test_solve_balanced(
@@ -103,10 +103,7 @@ class TestAlignmentProblem:
                 # kwargs["kwargs_init"] = {"key": 0}
                 # kwargs["key"] = 0
                 return  # TODO(@MUCDK) fix after refactoring
-        ap = (
-            AlignmentProblem(adata=adata_space_rotate)
-            .prepare(batch_key="batch")
-        )
+        ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
         if should_raise:
             with pytest.raises(ValueError, match=r"Expected `alpha`"):
                 ap.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
