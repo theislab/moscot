@@ -226,6 +226,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         threshold: float = 1e-3,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
     ) -> "TranslationProblem[K]":
         r"""Solve the translation problem.
 
@@ -303,6 +304,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             threshold=threshold,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )  # type: ignore[return-value]
 
     @property
