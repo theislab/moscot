@@ -456,6 +456,11 @@ class GWSolver(OTTJaxSolver):
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
         geom_xx = self._create_geometry(x, t=time_scales_heat_kernel.x, is_linear_term=False, **geom_kwargs)
         geom_yy = self._create_geometry(y, t=time_scales_heat_kernel.y, is_linear_term=False, **geom_kwargs)
+        if alpha <= 0.0:
+            raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
+        if (alpha == 1.0 and xy is not None) or (alpha != 1.0 and xy is None):
+            raise ValueError(f"Expected `xy` to be `None` if `alpha` is not 1.0, found xy={xy}, alpha={alpha}.")
+
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
