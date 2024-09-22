@@ -435,7 +435,7 @@ class GWSolver(OTTJaxSolver):
         cost_matrix_rank: Optional[int] = None,
         time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
-        alpha: float = 0.5,
+        alpha: Optional[float] = None,
         **kwargs: Any,
     ) -> quadratic_problem.QuadraticProblem:
         self._a = a
@@ -456,6 +456,8 @@ class GWSolver(OTTJaxSolver):
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
         geom_xx = self._create_geometry(x, t=time_scales_heat_kernel.x, is_linear_term=False, **geom_kwargs)
         geom_yy = self._create_geometry(y, t=time_scales_heat_kernel.y, is_linear_term=False, **geom_kwargs)
+        if alpha is None:
+            alpha = 1.0 if xy is None else 0.5 # set defaults according to the data provided
         if alpha <= 0.0:
             raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
         if (alpha == 1.0 and xy is not None) or (alpha != 1.0 and xy is None):
