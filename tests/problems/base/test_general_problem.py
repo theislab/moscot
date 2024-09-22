@@ -30,6 +30,19 @@ class TestOTProblem:
 
         assert isinstance(prob.solution, BaseDiscreteSolverOutput)
 
+    @pytest.mark.parametrize("kind", ["linear", "quadratic"])
+    def test_unrecognized_args(self, adata_x: AnnData, adata_y: AnnData, kind: Literal["linear", "quadratic"]):
+        prob = OTProblem(adata_x, adata_y)
+        data = {
+            "xy": {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+        }
+        if kind == "quadratic":
+            data["x"] = {"attr": "X"}
+            data["y"] = {"attr": "X"}
+
+        with pytest.raises(TypeError):
+            prob.prepare(**data).solve(epsilon=5e-1, dummy=42)
+
     @pytest.mark.fast
     def test_output(self, adata_x: AnnData, x: Geom_t):
         problem = OTProblem(adata_x)
