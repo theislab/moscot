@@ -75,10 +75,17 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
-    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
+    # @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank", "initializer"),
-        [(1, 0.9, -1, None), (1, 0.5, 10, "random"), (1, 0.5, 10, "rank2"), (0.1, 0.1, -1, None)],
+        ("epsilon", "alpha", "rank", "initializer", "should_raise"),
+        [
+            (1, 0.9, -1, None, False),
+            (1, 0.5, 10, "random", False),
+            (1, 0.5, 10, "rank2", False),
+            (0.1, 0.1, -1, None, False),
+            (0.1, -0.1, -1, None, True),  # Invalid alpha
+            (0.1, 1.1, -1, None, True),   # Invalid alpha
+        ],
     )
     def test_solve_balanced(
         self,
@@ -87,6 +94,7 @@ class TestAlignmentProblem:
         alpha: float,
         rank: int,
         initializer: Optional[Literal["random", "rank2"]],
+        should_raise: bool,
     ):
         kwargs = {}
         if rank > -1:
@@ -98,19 +106,23 @@ class TestAlignmentProblem:
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
-            .solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
         )
-        for prob_key in ap:
-            assert ap[prob_key].solution.rank == rank
-            if initializer != "random":  # TODO: is this valid?
-                assert ap[prob_key].solution.converged
+        if should_raise:
+            with pytest.raises(ValueError, match=r"Expected `alpha`"):
+                ap.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+        else:
+            ap = ap.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+            for prob_key in ap:
+                assert ap[prob_key].solution.rank == rank
+                if initializer != "random":  # TODO: is this valid?
+                    assert ap[prob_key].solution.converged
 
-        # TODO(michalk8): use np.testing
-        assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
-        assert np.all([sol.converged for sol in ap.solutions.values()])
-        np.testing.assert_array_equal(
-            [np.all(np.isfinite(sol.transport_matrix)) for sol in ap.solutions.values()], True
-        )
+            # TODO(michalk8): use np.testing
+            assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
+            assert np.all([sol.converged for sol in ap.solutions.values()])
+            np.testing.assert_array_equal(
+                [np.all(np.isfinite(sol.transport_matrix)) for sol in ap.solutions.values()], True
+            )
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):
         tau_a, tau_b = [0.8, 1]

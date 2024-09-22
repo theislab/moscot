@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any, List, Literal, Mapping, Optional, Union
 
+import re
 import pytest
 
 import numpy as np
@@ -301,14 +302,14 @@ class TestMappingProblem:
             assert isinstance(sol._output, solution_kind)
 
     @pytest.mark.parametrize(
-        ("sc_attr", "alpha"),
+        ("sc_attr", "alpha", "raise_msg"),
         [
-            (None, 0.5),
-            ({"attr": "X"}, 0),
+            (None, 0.5, re.escape("Expected `alpha` to be 0 for a `linear problem`.")),
+            ({"attr": "X"}, 0, re.escape("Expected `alpha` to be in interval `(0, 1]`, found `0`.")),
         ],
     )
     def test_problem_type_corner_cases(
-        self, adata_mapping: AnnData, sc_attr: Optional[Mapping[str, str]], alpha: Optional[float]
+        self, adata_mapping: AnnData, sc_attr: Optional[Mapping[str, str]], alpha: Optional[float], raise_msg: str
     ):
         # initialize and prepare the MappingProblem
         adataref, adatasp = _adata_spatial_split(adata_mapping)
@@ -316,5 +317,5 @@ class TestMappingProblem:
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
 
         # we test two incompatible combinations of `sc_attr` and `alpha`
-        with pytest.raises(ValueError, match=r"^Expected `alpha`"):
+        with pytest.raises(ValueError, match=raise_msg):
             mp.solve(alpha=alpha)
