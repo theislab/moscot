@@ -75,7 +75,6 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
-    # @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer", "should_raise"),
         [

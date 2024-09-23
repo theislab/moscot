@@ -60,7 +60,7 @@ class TestSpatioTemporalProblem:
             assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
-    @pytest.mark.skip(reason="unbalanced does not work yet")
+    @pytest.mark.skip(reason="unbalanced does not work yet: https://github.com/ott-jax/ott/issues/519")
     def test_solve_unbalanced(self, adata_spatio_temporal: AnnData):
         taus = [9e-1, 1e-2]
         problem1 = SpatioTemporalProblem(adata=adata_spatio_temporal)
