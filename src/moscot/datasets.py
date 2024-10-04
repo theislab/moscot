@@ -1,13 +1,11 @@
-import contextlib
 import os
-import pathlib
 import pickle
-import shutil
-import tempfile
 import urllib.request
 from itertools import combinations
 from types import MappingProxyType
-from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
+
+import mudata as mu
 
 import networkx as nx
 import numpy as np
@@ -15,8 +13,7 @@ import pandas as pd
 from scipy.linalg import block_diag
 
 import anndata as ad
-from anndata import AnnData
-from scanpy import read
+from scanpy.readwrite import _check_datafile_present_and_download
 
 from moscot._types import PathLike
 
@@ -36,7 +33,7 @@ def mosta(
     path: PathLike = "~/.cache/moscot/mosta.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:  # pragma: no cover
+) -> ad.AnnData:  # pragma: no cover
     """Preprocessed and extracted data as provided in :cite:`chen:22`.
 
     Includes embryo sections `E9.5`, `E2S1`, `E10.5`, `E2S1`, `E11.5`, `E1S2`.
@@ -59,6 +56,7 @@ def mosta(
     """
     return _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/40569779",
         expected_shape=(54134, 2000),
         force_download=force_download,
@@ -70,7 +68,7 @@ def hspc(
     path: PathLike = "~/.cache/moscot/hspc.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:  # pragma: no cover
+) -> ad.AnnData:  # pragma: no cover
     """CD34+ hematopoietic stem and progenitor cells from 4 healthy human donors.
 
     From the `NeurIPS Multimodal Single-Cell Integration Challenge
@@ -95,6 +93,7 @@ def hspc(
     """
     dataset = _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/37993503",
         expected_shape=(4000, 2000),
         force_download=force_download,
@@ -111,7 +110,7 @@ def drosophila(
     spatial: bool,
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:
+) -> ad.AnnData:
     """Embryo of Drosophila melanogaster described in :cite:`Li-spatial:22`.
 
     Minimal pre-processing was performed, such as gene and cell filtering, as well as normalization.
@@ -135,6 +134,7 @@ def drosophila(
     if spatial:
         return _load_dataset_from_url(
             path + "_sp.h5ad",
+            file_type="h5ad",
             backup_url="https://figshare.com/ndownloader/files/37984935",
             expected_shape=(3039, 82),
             force_download=force_download,
@@ -143,6 +143,7 @@ def drosophila(
 
     return _load_dataset_from_url(
         path + "_sc.h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/37984938",
         expected_shape=(1297, 2000),
         force_download=force_download,
@@ -154,7 +155,7 @@ def c_elegans(
     path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
+) -> Tuple[ad.AnnData, nx.DiGraph]:  # pragma: no cover
     """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
 
     Contains raw counts of 46,151 cells with at least partial lineage information.
@@ -175,6 +176,7 @@ def c_elegans(
     """
     adata = _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/39943585",
         expected_shape=(46151, 20222),
         force_download=force_download,
@@ -191,7 +193,7 @@ def zebrafish(
     path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
+) -> Tuple[ad.AnnData, Dict[str, nx.DiGraph]]:
     """Lineage-traced scRNA-seq time-series dataset of Zebrafish heart regeneration :cite:`hu:22`.
 
     Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees,
@@ -212,6 +214,7 @@ def zebrafish(
     """
     adata = _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/39951073",
         expected_shape=(44014, 31466),
         force_download=force_download,
@@ -230,7 +233,7 @@ def bone_marrow(
     rna: bool,
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:
+) -> ad.AnnData:
     """Multiome data of bone marrow measurements :cite:`luecken:21`.
 
     Contains processed counts of 6,224 cells. The RNA data was filtered to 2,000 top
@@ -256,6 +259,7 @@ def bone_marrow(
     if rna:
         return _load_dataset_from_url(
             path + "_rna.h5ad",
+            file_type="h5ad",
             backup_url="https://figshare.com/ndownloader/files/40195114",
             expected_shape=(6224, 2000),
             force_download=force_download,
@@ -263,6 +267,7 @@ def bone_marrow(
         )
     return _load_dataset_from_url(
         path + "_atac.h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/41013551",
         expected_shape=(6224, 8000),
         force_download=force_download,
@@ -270,11 +275,56 @@ def bone_marrow(
     )
 
 
+def pancreas_multiome(
+    rna_only: bool,
+    path: PathLike = "~/.cache/moscot/pancreas_multiome.h5mu",
+    force_download: bool = True,
+    **kwargs: Any,
+) -> Union[mu.MuData, ad.AnnData]:  # pragma: no cover
+    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`Klein:23`.
+
+    The dataset contains paired scRNA-seq and scATAC-seq data of pancreatic cells at embryonic days 14.5, 15.5, and
+    16.5. The data was preprocessed and filtered as described in the manuscript, the raw data and the full processed
+    data are available via GEO accession code GSE275562.
+
+    Parameters
+    ----------
+    rna_only
+        Only load the RNA data, resulting in a smaller file.
+    path
+        Path where to save the file.
+    force_download
+        Whether to force-download the data.
+    kwargs
+        Keyword arguments for :func:`anndata.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
+
+    Returns
+    -------
+        :class:`mudata.MuData` object with RNA and ATAC data if `rna_only`, else :class:`anndata.AnnData` with RNA only.
+    """
+    if rna_only:
+        return _load_dataset_from_url(
+            path,
+            file_type="h5ad",
+            backup_url="https://figshare.com/ndownloader/files/48785320",
+            expected_shape=(22604, 20242),
+            force_download=force_download,
+            **kwargs,
+        )
+    return _load_dataset_from_url(
+        path,
+        file_type="h5mu",
+        backup_url="https://figshare.com/ndownloader/files/48782332",
+        expected_shape=(22604, 271918),
+        force_download=force_download,
+    )
+
+
 def tedsim(
     path: PathLike = "~/.cache/moscot/tedsim.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:  # pragma: no cover
+) -> ad.AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
     Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw counts)
@@ -302,6 +352,7 @@ def tedsim(
     """
     return _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/40178644",
         expected_shape=(8448, 500),
         force_download=force_download,
@@ -313,7 +364,7 @@ def sciplex(
     path: PathLike = "~/.cache/moscot/sciplex.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:  # pragma: no cover
+) -> ad.AnnData:  # pragma: no cover
     """Perturbation dataset published in :cite:`srivatsan:20`.
 
     Transcriptomes of A549, K562, and mCF7 cells exposed to 188 compounds.
@@ -334,6 +385,7 @@ def sciplex(
     """
     return _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/43381398",
         expected_shape=(799317, 110984),
         force_download=force_download,
@@ -345,7 +397,7 @@ def sim_align(
     path: PathLike = "~/.cache/moscot/sim_align.h5ad",
     force_download: bool = False,
     **kwargs: Any,
-) -> AnnData:  # pragma: no cover
+) -> ad.AnnData:  # pragma: no cover
     """Spatial transcriptomics simulated dataset as described in :cite:`Jones-spatial:22`.
 
     Parameters
@@ -363,6 +415,7 @@ def sim_align(
     """
     return _load_dataset_from_url(
         path,
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/37984926",
         expected_shape=(1200, 500),
         force_download=force_download,
@@ -383,7 +436,7 @@ def simulate_data(
     lin_cost_matrix: Optional[str] = None,
     quad_cost_matrix: Optional[str] = None,
     **kwargs: Any,
-) -> AnnData:
+) -> ad.AnnData:
     """Simulate data.
 
     This function is used to generate data, mainly for the purpose of
@@ -424,7 +477,7 @@ def simulate_data(
     """
     rng = np.random.RandomState(seed)
     adatas = [
-        AnnData(
+        ad.AnnData(
             X=rng.multivariate_normal(
                 mean=kwargs.pop("mean", np.arange(n_genes)),
                 cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
@@ -477,32 +530,29 @@ def simulate_data(
 
 def _load_dataset_from_url(
     fpath: PathLike,
+    file_type: Literal["h5ad", "h5mu"],
     *,
     backup_url: str,
     expected_shape: Tuple[int, int],
     force_download: bool = False,
-    sparse: bool = True,
-    cache: bool = True,
     **kwargs: Any,
-) -> AnnData:
+) -> Union[ad.AnnData, mu.MuData]:
+    # TODO: make nicer once https://github.com/scverse/mudata/issues/76 resolved
     fpath = os.path.expanduser(fpath)
-    if not fpath.endswith(".h5ad"):
-        fpath += ".h5ad"
+    assert file_type in ["h5ad", "h5mu"], f"Invalid type `{file_type}`. Must be one of `['h5ad', 'h5mu']`."
+    if not fpath.endswith(file_type):
+        fpath += f".{file_type}"
+    if force_download and os.path.exists(fpath):
+        os.remove(fpath)
+    if not _check_datafile_present_and_download(backup_url=backup_url, path=fpath):
+        raise FileNotFoundError(f"File `{fpath}` not found or download failed.")
+    data = ad.read_h5ad(filename=fpath, **kwargs) if file_type == "h5ad" else mu.read_h5mu(filename=fpath, backed=False)
 
-    if force_download:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = pathlib.Path(tmpdir) / "data.h5ad"
-            adata = read(filename=tmp, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(fpath)
-            shutil.move(tmp, fpath)
-    else:
-        adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+    if data.shape != expected_shape:
+        data_str = "MuData" if file_type == "h5mu" else "AnnData"
+        raise ValueError(f"Expected {data_str} object to have shape `{expected_shape}`, found `{data.shape}`.")
 
-    if adata.shape != expected_shape:
-        raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
-
-    return adata
+    return data
 
 
 def _get_random_trees(

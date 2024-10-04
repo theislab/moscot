@@ -30,7 +30,7 @@ from tests.problems.conftest import (
 
 
 class TestFGWProblem:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("policy", ["sequential", "star"])
     def test_prepare(self, adata_space_rotate: AnnData, policy):
         expected_keys = {
@@ -59,7 +59,7 @@ class TestFGWProblem:
             assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prepare_marginals(self, adata_time: AnnData, marginal_keys):
         problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
@@ -173,7 +173,7 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         ("cost_str", "cost_inst", "cost_kwargs"),
         [
@@ -212,7 +212,7 @@ class TestFGWProblem:
 
         problem = problem.solve(max_iterations=2)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize(
         ("cost_str", "cost_inst", "cost_kwargs"),
         [
@@ -305,7 +305,7 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].y.data_src, np.ndarray)
         assert problem[0, 1].y.data_tgt is None
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prepare_different_costs(self, adata_time: AnnData):
         problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
