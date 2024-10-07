@@ -198,22 +198,24 @@ class AnalysisMixin(Generic[K, B]):
         )
         df_source = _get_df_cell_transition(
             self.adata,
-            [source_annotation_key] if aggregation_mode == "cell" else [source_annotation_key, target_annotation_key],
+            [source_annotation_key],
             key,
             source,
         )
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
-            [target_annotation_key] if aggregation_mode == "cell" else [source_annotation_key, target_annotation_key],
+            [target_annotation_key],
             key if other_adata is None else other_key,
             target,
         )
-
+        df_source = df_source.rename(columns={source_annotation_key: "res_annotation"})
+        df_target = df_target.rename(columns={target_annotation_key: "res_annotation"})
+        res_annotation_key = "res_annotation"
         source_annotations_verified, target_annotations_verified = _validate_annotations(
             df_source=df_source,
             df_target=df_target,
-            source_annotation_key=source_annotation_key,
-            target_annotation_key=target_annotation_key,
+            source_annotation_key=res_annotation_key,
+            target_annotation_key=res_annotation_key,
             source_annotations=source_annotations,
             target_annotations=target_annotations,
             aggregation_mode=aggregation_mode,
@@ -236,6 +238,7 @@ class AnalysisMixin(Generic[K, B]):
                     annotations_1=source_annotations_verified,
                     annotations_2=target_annotations_verified,
                     df=df_target,
+                    df_key=res_annotation_key,
                     tm=tm,
                     forward=True,
                 )
@@ -247,6 +250,7 @@ class AnalysisMixin(Generic[K, B]):
                     annotations_1=target_annotations_verified,
                     annotations_2=source_annotations_verified,
                     df=df_source,
+                    df_key=res_annotation_key,
                     tm=tm,
                     forward=False,
                 )
@@ -256,7 +260,7 @@ class AnalysisMixin(Generic[K, B]):
                 tm = self._cell_aggregation_transition(  # type: ignore[attr-defined]
                     source=source,
                     target=target,
-                    annotation_key=target_annotation_key,
+                    annotation_key=res_annotation_key,
                     annotations_1=source_annotations_verified,
                     annotations_2=target_annotations_verified,
                     df_1=df_target,
@@ -269,7 +273,7 @@ class AnalysisMixin(Generic[K, B]):
                 tm = self._cell_aggregation_transition(  # type: ignore[attr-defined]
                     source=source,
                     target=target,
-                    annotation_key=source_annotation_key,
+                    annotation_key=res_annotation_key,
                     annotations_1=target_annotations_verified,
                     annotations_2=source_annotations_verified,
                     df_1=df_source,
@@ -483,6 +487,7 @@ class AnalysisMixin(Generic[K, B]):
         annotation_key: str,
         annotations_1: list[Any],
         annotations_2: list[Any],
+        df_key: str,
         df: pd.DataFrame,
         tm: pd.DataFrame,
         forward: bool,
@@ -503,7 +508,7 @@ class AnalysisMixin(Generic[K, B]):
                 key_added=None,
             )
             df["distribution"] = result
-            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum(numeric_only=True)
+            cell_dist = df[df[df_key].isin(annotations_2)].groupby(df_key, observed=False).sum(numeric_only=True)
             cell_dist /= cell_dist.sum()
             tm.loc[subset, :] = [
                 cell_dist.loc[annotation, "distribution"] if annotation in cell_dist.distribution.index else 0
