@@ -18,7 +18,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import infer_dtype, is_categorical_dtype, is_numeric_dtype
+from pandas.api.types import infer_dtype, is_numeric_dtype
 
 from anndata import AnnData
 
@@ -1034,7 +1034,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
         self.adata.obs[key] = self.adata.obs[key].astype("category")
         col = self.adata.obs[key]
-        if not (is_categorical_dtype(col) and is_numeric_dtype(col.cat.categories)):
+        if not (isinstance(col.dtype, pd.CategoricalDtype) and is_numeric_dtype(col.cat.categories)):
             raise TypeError(
                 f"Expected `adata.obs[{key!r}]` to be categorical with numeric categories, "
                 f"found `{infer_dtype(col)}`."
