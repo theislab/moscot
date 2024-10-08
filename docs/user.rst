@@ -53,6 +53,7 @@ Datasets
     datasets.drosophila
     datasets.hspc
     datasets.mosta
+    datasets.pancreas_multiome
     datasets.sciplex
     datasets.sim_align
     datasets.simulate_data
