@@ -281,11 +281,11 @@ def pancreas_multiome(
     force_download: bool = True,
     **kwargs: Any,
 ) -> Union[mu.MuData, ad.AnnData]:  # pragma: no cover
-    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`Klein:23`.
+    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`klein:23`.
 
     The dataset contains paired scRNA-seq and scATAC-seq data of pancreatic cells at embryonic days 14.5, 15.5, and
     16.5. The data was preprocessed and filtered as described in the manuscript, the raw data and the full processed
-    data are available via GEO accession code GSE275562.
+    data are available via `GEO <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi>`_ accession code GSE275562.
 
     Parameters
     ----------
@@ -296,7 +296,7 @@ def pancreas_multiome(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`anndata.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
+        Keyword arguments for :func:`anndata.io.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
 
     Returns
     -------
