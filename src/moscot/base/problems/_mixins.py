@@ -230,31 +230,31 @@ class AnalysisMixin(Generic[K, B]):
         target_annotation_key, target_annotations, target_annotations_ordered = _validate_args_cell_transition(
             self.adata if other_adata is None else other_adata, target_groups
         )
+        new_annotation_key = "new_annotation"
         df_source = _get_df_cell_transition(
             self.adata,
             [source_annotation_key],
             key,
             source,
-        )
+        ).rename(columns={source_annotation_key: new_annotation_key})
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
             [target_annotation_key],
             key if other_adata is None else other_key,
             target,
-        )
-        res_annotation_key = "res_annotation"
-        df_source = df_source.rename(columns={source_annotation_key: res_annotation_key})
-        df_target = df_target.rename(columns={target_annotation_key: res_annotation_key})
+        ).rename(columns={target_annotation_key: new_annotation_key})
         source_annotations_verified, target_annotations_verified = _validate_annotations(
             df_source=df_source,
             df_target=df_target,
-            source_annotation_key=res_annotation_key,
-            target_annotation_key=res_annotation_key,
+            source_annotation_key=new_annotation_key,
+            target_annotation_key=new_annotation_key,
             source_annotations=source_annotations,
             target_annotations=target_annotations,
             aggregation_mode=aggregation_mode,
             forward=forward,
         )
+        df_to, df_from = (df_target, df_source) if forward else (df_source, df_target)
+        df_to = df_to[new_annotation_key]
         move_op = self.push if forward else self.pull
         move_op_const_kwargs = {
             "source": source,
@@ -264,8 +264,6 @@ class AnalysisMixin(Generic[K, B]):
             "scale_by_marginals": False,
             "key_added": None,
         }
-        df_to, df_from = (df_target, df_source) if forward else (df_source, df_target)
-        df_to = df_to[res_annotation_key]
 
         if aggregation_mode == "annotation":
             func = partial(
