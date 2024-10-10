@@ -1,15 +1,10 @@
-import contextlib
 import os
-import pathlib
 import pickle
-import shutil
-import tempfile
 import urllib.request
 from itertools import combinations
 from types import MappingProxyType
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
-import mudata
 import mudata as mu
 
 import networkx as nx
@@ -18,6 +13,7 @@ import pandas as pd
 from scipy.linalg import block_diag
 
 import anndata as ad
+from scanpy.readwrite import _check_datafile_present_and_download
 
 from moscot._types import PathLike
 
@@ -61,7 +57,7 @@ def mosta(
     """
     return _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/40569779",
         expected_shape=(54134, 2000),
         force_download=force_download,
@@ -98,7 +94,7 @@ def hspc(
     """
     dataset = _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/37993503",
         expected_shape=(4000, 2000),
         force_download=force_download,
@@ -139,7 +135,7 @@ def drosophila(
     if spatial:
         return _load_dataset_from_url(
             path + "_sp.h5ad",
-            type="h5ad",
+            file_type="h5ad",
             backup_url="https://figshare.com/ndownloader/files/37984935",
             expected_shape=(3039, 82),
             force_download=force_download,
@@ -148,7 +144,7 @@ def drosophila(
 
     return _load_dataset_from_url(
         path + "_sc.h5ad",
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/37984938",
         expected_shape=(1297, 2000),
         force_download=force_download,
@@ -181,7 +177,7 @@ def c_elegans(
     """
     adata = _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/39943585",
         expected_shape=(46151, 20222),
         force_download=force_download,
@@ -219,7 +215,7 @@ def zebrafish(
     """
     adata = _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/39951073",
         expected_shape=(44014, 31466),
         force_download=force_download,
@@ -264,7 +260,7 @@ def bone_marrow(
     if rna:
         return _load_dataset_from_url(
             path + "_rna.h5ad",
-            type="h5ad",
+            file_type="h5ad",
             backup_url="https://figshare.com/ndownloader/files/40195114",
             expected_shape=(6224, 2000),
             force_download=force_download,
@@ -272,7 +268,7 @@ def bone_marrow(
         )
     return _load_dataset_from_url(
         path + "_atac.h5ad",
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/41013551",
         expected_shape=(6224, 8000),
         force_download=force_download,
@@ -286,11 +282,11 @@ def pancreas_multiome(
     force_download: bool = True,
     **kwargs: Any,
 ) -> Union[mu.MuData, ad.AnnData]:  # pragma: no cover
-    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`Klein:23`.
+    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`klein:23`.
 
     The dataset contains paired scRNA-seq and scATAC-seq data of pancreatic cells at embryonic days 14.5, 15.5, and
     16.5. The data was preprocessed and filtered as described in the manuscript, the raw data and the full processed
-    data are available via GEO accession code GSE275562.
+    data are available via `GEO <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi>`_ accession code GSE275562.
 
     Parameters
     ----------
@@ -301,7 +297,7 @@ def pancreas_multiome(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`anndata.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
+        Keyword arguments for :func:`anndata.io.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
 
     Returns
     -------
@@ -318,7 +314,7 @@ def pancreas_multiome(
         )
     return _load_dataset_from_url(
         path,
-        type="h5mu",
+        file_type="h5mu",
         backup_url="https://figshare.com/ndownloader/files/48782332",
         expected_shape=(22604, 271918),
         force_download=force_download,
@@ -357,7 +353,7 @@ def tedsim(
     """
     return _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/40178644",
         expected_shape=(8448, 500),
         force_download=force_download,
@@ -390,7 +386,7 @@ def sciplex(
     """
     return _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/43381398",
         expected_shape=(799317, 110984),
         force_download=force_download,
@@ -420,7 +416,7 @@ def sim_align(
     """
     return _load_dataset_from_url(
         path,
-        type="h5ad",
+        file_type="h5ad",
         backup_url="https://figshare.com/ndownloader/files/37984926",
         expected_shape=(1200, 500),
         force_download=force_download,
@@ -535,7 +531,7 @@ def simulate_data(
 
 def _load_dataset_from_url(
     fpath: PathLike,
-    type: Literal["h5ad", "h5mu"],
+    file_type: Literal["h5ad", "h5mu"],
     *,
     backup_url: str,
     expected_shape: Tuple[int, int],
@@ -544,31 +540,17 @@ def _load_dataset_from_url(
 ) -> Union[ad.AnnData, mu.MuData]:
     # TODO: make nicer once https://github.com/scverse/mudata/issues/76 resolved
     fpath = os.path.expanduser(fpath)
-    if type == "h5ad" and not fpath.endswith(".h5ad"):
-        fpath += ".h5ad"
-
-    if type == "h5mu" and not fpath.endswith(".h5mu"):
-        fpath += ".h5mu"
-
-    if not os.path.exists(fpath):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = pathlib.Path(tmpdir) / f"data.{type}"
-            urllib.request.urlretrieve(backup_url, tmp)
-            if type == "h5ad":
-                data = ad.read_h5ad(filename=tmp, **kwargs)
-            if type == "h5mu":
-                data = mudata.read(tmp, **kwargs)
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(fpath)
-            shutil.move(tmp, fpath)
-    else:
-        if type == "h5ad":
-            data = ad.read_h5ad(filename=fpath, **kwargs)
-        else:
-            raise NotImplementedError("MuData download only available with `force_download=True`.")
+    assert file_type in ["h5ad", "h5mu"], f"Invalid type `{file_type}`. Must be one of `['h5ad', 'h5mu']`."
+    if not fpath.endswith(file_type):
+        fpath += f".{file_type}"
+    if force_download and os.path.exists(fpath):
+        os.remove(fpath)
+    if not _check_datafile_present_and_download(backup_url=backup_url, path=fpath):
+        raise FileNotFoundError(f"File `{fpath}` not found or download failed.")
+    data = ad.read_h5ad(filename=fpath, **kwargs) if file_type == "h5ad" else mu.read_h5mu(filename=fpath, backed=False)
 
     if data.shape != expected_shape:
-        data_str = "MuData" if type == "h5mu" else "AnnData"
+        data_str = "MuData" if file_type == "h5mu" else "AnnData"
         raise ValueError(f"Expected {data_str} object to have shape `{expected_shape}`, found `{data.shape}`.")
 
     return data

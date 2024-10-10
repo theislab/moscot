@@ -68,7 +68,7 @@ class TestCompoundProblem:
             assert problem[key].solution is problem.solutions[key]
 
     @pytest.mark.parametrize("scale", [True, False])
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture, scale: bool):
         subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
         xy_callback_kwargs = {"n_comps": 5, "scale": scale}
@@ -88,7 +88,7 @@ class TestCompoundProblem:
         assert isinstance(problem.problems, dict)
         spy.assert_called_with("xy", subproblem.adata_src, subproblem.adata_tgt, **xy_callback_kwargs)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_custom_callback_lin(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
         spy = mocker.spy(TestCompoundProblem, "xy_callback")
@@ -106,7 +106,7 @@ class TestCompoundProblem:
 
         assert spy.call_count == len(expected_keys)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_custom_callback_quad(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
         spy_x = mocker.spy(TestCompoundProblem, "x_callback")
@@ -164,7 +164,7 @@ class TestCompoundProblem:
         np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
     def test_prepare_cost(self, adata_time: AnnData, cost: Tuple[str, Any]):
         problem = Problem(adata=adata_time)
@@ -179,7 +179,7 @@ class TestCompoundProblem:
         assert isinstance(problem[0, 1].x.cost, cost[1])
         assert isinstance(problem[0, 1].y.cost, cost[1])
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
     def test_prepare_cost_with_callback(self, adata_time: AnnData, cost: Tuple[str, Any]):
         problem = Problem(adata=adata_time)
@@ -196,7 +196,7 @@ class TestCompoundProblem:
         assert isinstance(problem[0, 1].x.cost, cost[1])
         assert isinstance(problem[0, 1].y.cost, cost[1])
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     def test_prepare_different_costs(self, adata_time: AnnData):
         problem = Problem(adata=adata_time)
         problem = problem.prepare(

@@ -22,7 +22,6 @@ import optax
 import jax
 import jax.numpy as jnp
 import numpy as np
-import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.neural.datasets import OTData, OTDataset
 from ott.neural.methods.flows import dynamics, genot
@@ -34,6 +33,7 @@ from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 from ott.solvers.utils import uniform_sampler
 
+from moscot._logging import logger
 from moscot._types import (
     ArrayLike,
     ProblemKind_t,
@@ -277,8 +277,11 @@ class SinkhornSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
-            kwargs.setdefault("gamma", 10)
+            kwargs.setdefault("gamma", 500)
             kwargs.setdefault("gamma_rescale", True)
+            eps = kwargs.get("epsilon")
+            if eps is not None and eps > 0.0:
+                logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
             initializer = "rank2" if initializer is None else initializer
             self._solver = sinkhorn_lr.LRSinkhorn(
                 rank=rank, epsilon=epsilon, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs
@@ -395,6 +398,9 @@ class GWSolver(OTTJaxSolver):
         if rank > -1:
             kwargs.setdefault("gamma", 10)
             kwargs.setdefault("gamma_rescale", True)
+            eps = kwargs.get("epsilon")
+            if eps is not None and eps > 0.0:
+                logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
             initializer = "rank2" if initializer is None else initializer
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
@@ -644,15 +650,6 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             MultiLoader(datasets=train_loaders, seed=seed),
             MultiLoader(datasets=validate_loaders, seed=seed),
         )
-
-    @staticmethod
-    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]   # noqa:E501
-        if allow_reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))
-        if arr.ndim != 2:
-            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-        return arr
 
     def _split_data(  # TODO: adapt for Gromov terms
         self,

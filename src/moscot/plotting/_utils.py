@@ -18,7 +18,6 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_categorical_dtype
 from sklearn.preprocessing import MinMaxScaler
 
 import matplotlib as mpl
@@ -523,7 +522,7 @@ def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
 def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str]]) -> Optional[mpl.colors.Colormap]:
     if isinstance(subset, list):
         subset = subset[0]
-    if not is_categorical_dtype(adata.obs[obs_col]):
+    if not isinstance(adata.obs[obs_col].dtype, pd.CategoricalDtype):
         raise TypeError(f"`adata.obs[{obs_col!r}] must be of categorical type.")
 
     for i, cat in enumerate(adata.obs[obs_col].cat.categories):

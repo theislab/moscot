@@ -14,8 +14,6 @@ from typing import (
     Union,
 )
 
-import numpy as np
-
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseDiscreteSolverOutput
@@ -54,9 +52,6 @@ class TagConverter:  # noqa: D101
         loss_xy = {k[3:]: v for k, v in kwargs.items() if k.startswith("xy_")}
         loss_x = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         loss_y = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
-
-        if isinstance(xy, dict) and np.all([isinstance(v, tuple) for v in xy.values()]):  # handling joint learning
-            return xy
 
         # fmt: off
         xy = xy if isinstance(xy, TaggedArray) else self._convert(*to_tuple(xy), tag=tags.get("xy", None), **loss_xy)

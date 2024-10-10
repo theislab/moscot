@@ -29,7 +29,7 @@ from tests.plotting.conftest import PlotTester, PlotTesterMeta
 
 
 class TestSinkhorn:
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool):
@@ -51,7 +51,8 @@ class TestSinkhorn:
     @pytest.mark.parametrize("initializer", ["random", "rank2", "k-means"])
     def test_solver_rank(self, y: Geom_t, rank: Optional[int], initializer: str):
         eps = 1e-2
-        lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer)
+        default_gamma_lr_sinhorn = 500
+        lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer, gamma=default_gamma_lr_sinhorn)
         problem = LinearProblem(PointCloud(y, epsilon=eps))
         gt = lr_sinkhorn(problem)
 
@@ -211,7 +212,7 @@ class TestFGW:
         assert isinstance(solver.xy, PointCloud)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
-    @pytest.mark.fast()
+    @pytest.mark.fast
     @pytest.mark.parametrize("alpha", [0.1, 0.9])
     def test_alpha(self, x: Geom_t, y: Geom_t, xy: Geom_t, alpha: float) -> None:
         thresh, eps = 5e-2, 1e-1
