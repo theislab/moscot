@@ -379,7 +379,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             cell_transitions_updated = cell_transitions
 
         if threshold is not None:
-            for ct in cell_transitions:
+            for ct in cell_transitions_updated:
                 ct[ct < threshold] = 0.0
 
         if key_added is None:
