@@ -22,14 +22,15 @@ import anndata as ad
 from moscot._types import PathLike
 
 __all__ = [
-    "mosta",
-    "hspc",
-    "drosophila",
-    "c_elegans",
-    "zebrafish",
     "bone_marrow",
+    "c_elegans",
+    "drosophila",
+    "hspc",
+    "mosta",
+    "pancreas_multiome",
     "sim_align",
     "simulate_data",
+    "zebrafish",
 ]
 
 
@@ -310,7 +311,7 @@ def pancreas_multiome(
         return _load_dataset_from_url(
             path,
             type="h5ad",
-            backup_url="https://figshare.com/ndownloader/files/48785320",
+            backup_url="https://figshare.com/ndownloader/files/49725087",
             expected_shape=(22604, 20242),
             force_download=force_download,
             **kwargs,
