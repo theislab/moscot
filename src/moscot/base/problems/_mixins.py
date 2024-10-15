@@ -503,7 +503,7 @@ class AnalysisMixin(Generic[K, B]):
                 key_added=None,
             )
             df["distribution"] = result
-            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum(numeric_only=True)
+            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key, observed=False).sum(numeric_only=True)
             cell_dist /= cell_dist.sum()
             tm.loc[subset, :] = [
                 cell_dist.loc[annotation, "distribution"] if annotation in cell_dist.distribution.index else 0
@@ -542,7 +542,7 @@ class AnalysisMixin(Generic[K, B]):
             )
             current_cells = df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index.tolist()
             df_1.loc[:, current_cells] = result
-            to_app = df_1[df_1[annotation_key].isin(annotations_2)].groupby(annotation_key).sum().transpose()
+            to_app = df_1[df_1[annotation_key].isin(annotations_2)].groupby(annotation_key, observed=False).sum().transpose()
             tm = pd.concat([tm, to_app], verify_integrity=True, axis=0)
             df_1 = df_1.drop(current_cells, axis=1)
         return tm
