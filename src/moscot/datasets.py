@@ -565,7 +565,7 @@ def _get_random_trees(
             assert len(leaf_names[i]) == n_leaves
     trees = []
     for tree_idx in range(n_trees):
-        G = nx.random_labeled_tree(n_initial_nodes, seed=seed, create_using=nx.DiGraph)
+        G = nx.random_labeled_tree(n_initial_nodes, seed=seed)
         leaves = [x for x in G.nodes() if G.out_degree(x) == 0 and G.in_degree(x) == 1]
         inner_nodes = list(set(G.nodes()) - set(leaves))
         leaves_updated = leaves.copy()
