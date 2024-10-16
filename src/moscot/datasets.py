@@ -306,7 +306,7 @@ def pancreas_multiome(
     if rna_only:
         return _load_dataset_from_url(
             path,
-            type="h5ad",
+            file_type="h5ad",
             backup_url="https://figshare.com/ndownloader/files/49725087",
             expected_shape=(22604, 20242),
             force_download=force_download,
