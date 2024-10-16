@@ -47,7 +47,7 @@ dependencies = [
     "numpy>=1.20.0",
     "scipy>=1.7.0",
     "pandas>=2.0.1",
-    "networkx>=2.6.3",
+    "networkx>=3.2",
     # https://github.com/scverse/scanpy/issues/2411
     "matplotlib>=3.5.0",
     "anndata>=0.9.1",
