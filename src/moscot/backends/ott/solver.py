@@ -533,7 +533,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
     ) -> Tuple[MultiLoader, MultiLoader]:
         train_loaders = []
         validate_loaders = []
-        seed = kwargs.get("seed", None)
+        seed = kwargs.get("seed")
         is_aligned = kwargs.get("is_aligned", False)
         if train_size == 1.0:
             for sample_pair in sample_pairs:
