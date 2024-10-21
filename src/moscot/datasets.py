@@ -281,11 +281,11 @@ def pancreas_multiome(
     force_download: bool = True,
     **kwargs: Any,
 ) -> Union[mu.MuData, ad.AnnData]:  # pragma: no cover
-    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`Klein:23`.
+    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`klein:23`.
 
     The dataset contains paired scRNA-seq and scATAC-seq data of pancreatic cells at embryonic days 14.5, 15.5, and
     16.5. The data was preprocessed and filtered as described in the manuscript, the raw data and the full processed
-    data are available via GEO accession code GSE275562.
+    data are available via `GEO <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi>`_ accession code GSE275562.
 
     Parameters
     ----------
@@ -296,7 +296,7 @@ def pancreas_multiome(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`anndata.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
+        Keyword arguments for :func:`anndata.io.read_h5ad` if `rna_only`, else for :func:`mudata.read`.
 
     Returns
     -------
@@ -565,7 +565,9 @@ def _get_random_trees(
             assert len(leaf_names[i]) == n_leaves
     trees = []
     for tree_idx in range(n_trees):
-        G = nx.random_tree(n_initial_nodes, seed=seed, create_using=nx.DiGraph)
+        tempG = nx.random_labeled_tree(n_initial_nodes, seed=seed)
+        G = nx.DiGraph()
+        G.add_edges_from(tempG.edges)
         leaves = [x for x in G.nodes() if G.out_degree(x) == 0 and G.in_degree(x) == 1]
         inner_nodes = list(set(G.nodes()) - set(leaves))
         leaves_updated = leaves.copy()
