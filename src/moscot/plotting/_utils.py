@@ -480,7 +480,7 @@ def _plot_scatter(
                     cells_with_st = adata[adata.obs[keys[0]] == st].obs[keys[1]].values
                     indices = list(cells_with_st) + list(cells_with_vmin) + list(cells_with_vmax)
                     adata_view = adata[indices, :]
-                    size = size[indices]
+                    size = size.iloc[indices]
                 else:
                     kwargs["color_map"] = cont_cmap
                     kwargs["na_color"] = na_color
