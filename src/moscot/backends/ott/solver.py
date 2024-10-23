@@ -413,6 +413,11 @@ class GWSolver(OTTJaxSolver):
             linear_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
             if initializer is None:
                 initializer = quad_initializers.QuadraticInitializer()
+            if isinstance(initializer, str):
+                raise ValueError(
+                    "Expected `initializer` to be an instance of `ott.initializers.quadratic.BaseQuadraticInitializer`,"
+                    f"found `{initializer}`."
+                )
             initializer = functools.partial(initializer, **initializer_kwargs)
             self._solver = gromov_wasserstein.GromovWasserstein(
                 linear_solver=linear_solver,
