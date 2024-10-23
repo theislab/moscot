@@ -1,5 +1,6 @@
+import re
 from pathlib import Path
-from typing import Any, List, Literal, Mapping, Optional, Union
+from typing import Any, Callable, List, Literal, Mapping, Optional, Union
 
 import pytest
 
@@ -232,9 +233,12 @@ class TestMappingProblem:
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
             assert hasattr(solver, val)
-            assert getattr(solver, val) == args_to_check[arg]
+            if arg == "initializer" and args_to_check["rank"] == -1:
+                assert isinstance(getattr(solver, val), Callable)
+            else:
+                assert getattr(solver, val) == args_to_check[arg]
 
-        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
+        sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
@@ -301,14 +305,14 @@ class TestMappingProblem:
             assert isinstance(sol._output, solution_kind)
 
     @pytest.mark.parametrize(
-        ("sc_attr", "alpha"),
+        ("sc_attr", "alpha", "raise_msg"),
         [
-            (None, 0.5),
-            ({"attr": "X"}, 0),
+            (None, 0.5, re.escape("Expected `alpha` to be 0 for a `linear problem`.")),
+            ({"attr": "X"}, 0, re.escape("Expected `alpha` to be in interval `(0, 1]`, found `0`.")),
         ],
     )
     def test_problem_type_corner_cases(
-        self, adata_mapping: AnnData, sc_attr: Optional[Mapping[str, str]], alpha: Optional[float]
+        self, adata_mapping: AnnData, sc_attr: Optional[Mapping[str, str]], alpha: Optional[float], raise_msg: str
     ):
         # initialize and prepare the MappingProblem
         adataref, adatasp = _adata_spatial_split(adata_mapping)
@@ -316,5 +320,5 @@ class TestMappingProblem:
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
 
         # we test two incompatible combinations of `sc_attr` and `alpha`
-        with pytest.raises(ValueError, match=r"^Expected `alpha`"):
+        with pytest.raises(ValueError, match=raise_msg):
             mp.solve(alpha=alpha)
