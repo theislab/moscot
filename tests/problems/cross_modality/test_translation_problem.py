@@ -1,5 +1,5 @@
 from contextlib import nullcontext
-from typing import Any, Literal, Mapping, Optional, Tuple, Callable
+from typing import Any, Callable, Literal, Mapping, Optional, Tuple
 
 import pytest
 
