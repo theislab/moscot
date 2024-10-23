@@ -99,7 +99,7 @@ class TestGW:
         thresh = 1e-2
         pc_x, pc_y = PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps)
         prob = quadratic_problem.QuadraticProblem(pc_x, pc_y)
-        sol = GromovWasserstein(epsilon=eps, threshold=thresh)
+        sol = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())
         solver = jax.jit(sol, static_argnames=["threshold", "epsilon"]) if jit else sol
         gt = solver(prob)
 
@@ -130,7 +130,7 @@ class TestGW:
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
         )
-        gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
+        gt = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())(problem)
         solver = GWSolver(epsilon=eps, threshold=thresh)
 
         pred = solver(
@@ -157,7 +157,7 @@ class TestGW:
             )
 
         else:
-            gt = GromovWasserstein(epsilon=eps, rank=rank, threshold=thresh)(
+            gt = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())(
                 QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
             )
 
@@ -183,7 +183,7 @@ class TestFGW:
         thresh = 1e-2
         xx, yy = xy
 
-        ott_solver = GromovWasserstein(epsilon=eps, threshold=thresh)
+        ott_solver = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())
         problem = quadratic_problem.QuadraticProblem(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
@@ -218,7 +218,7 @@ class TestFGW:
         thresh, eps = 5e-2, 1e-1
         xx, yy = xy
 
-        ott_solver = GromovWasserstein(epsilon=eps, threshold=thresh)
+        ott_solver = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())
         problem = quadratic_problem.QuadraticProblem(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
@@ -256,7 +256,7 @@ class TestFGW:
             geom_xy=Geometry(cost_matrix=xy_cost, epsilon=eps),
             fused_penalty=alpha_to_fused_penalty(alpha),
         )
-        gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
+        gt = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())(problem)
 
         solver = GWSolver(epsilon=eps, threshold=thresh)
         pred = solver(
@@ -398,7 +398,7 @@ class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
         out.plot_errors()
 
     def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), store_inner_errors=True)(
+        out = GWSolver(store_inner_errors=True)(
             a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y
         )
         out.plot_errors()
