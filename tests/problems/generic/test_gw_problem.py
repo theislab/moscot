@@ -1,4 +1,4 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 import pytest
 
@@ -9,8 +9,6 @@ from ott.geometry.costs import Cosine, Euclidean, PNormP, SqEuclidean, SqPNorm
 from ott.solvers.linear import acceleration
 
 from anndata import AnnData
-from typing import Callable
-
 
 from moscot._types import CostKwargs_t
 from moscot.base.output import BaseDiscreteSolverOutput

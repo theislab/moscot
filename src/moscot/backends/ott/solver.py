@@ -23,6 +23,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
+from ott.initializers.quadratic import initializers as quad_initializers
 from ott.neural.datasets import OTData, OTDataset
 from ott.neural.methods.flows import dynamics, genot
 from ott.neural.networks.layers import time_encoder
@@ -31,7 +32,6 @@ from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.initializers.quadratic import initializers as quad_initializers
 from ott.solvers.utils import uniform_sampler
 
 from moscot._logging import logger
