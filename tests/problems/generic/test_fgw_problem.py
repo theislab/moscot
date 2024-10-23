@@ -114,7 +114,7 @@ class TestFGWProblem:
         for arg, val in args.items():
             assert getattr(solver, val, object()) == args_to_check[arg], arg
 
-        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
+        sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
@@ -342,7 +342,7 @@ class TestFGWProblem:
             },
         )
 
-        sinkhorn_solver = problem[("0", "1")].solver.solver.linear_ot_solver
+        sinkhorn_solver = problem[("0", "1")].solver.solver.linear_solver
 
         anderson = sinkhorn_solver.anderson
         assert isinstance(anderson, acceleration.AndersonAcceleration)
