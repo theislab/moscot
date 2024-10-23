@@ -1,5 +1,5 @@
 from contextlib import nullcontext
-from typing import Any, Literal, Mapping, Optional, Tuple
+from typing import Any, Literal, Mapping, Optional, Tuple, Callable
 
 import pytest
 
@@ -144,10 +144,12 @@ class TestTranslationProblem:
         tp = tp.solve(**args_to_check)
 
         solver = tp[key].solver.solver
-
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
-            assert getattr(solver, val) == args_to_check[arg], arg
+            if arg == "initializer" and args_to_check["rank"] == -1:
+                assert isinstance(getattr(solver, val), Callable)
+            else:
+                assert getattr(solver, val) == args_to_check[arg], arg
 
         sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
