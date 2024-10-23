@@ -31,6 +31,7 @@ from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
+from ott.initializers.quadratic import initializers as quad_initializers
 from ott.solvers.utils import uniform_sampler
 
 from moscot._logging import logger
@@ -409,13 +410,13 @@ class GWSolver(OTTJaxSolver):
                 **kwargs,
             )
         else:
-            linear_ot_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
-            initializer = None
+            linear_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
+            if initializer is None:
+                initializer = quad_initializers.QuadraticInitializer()
+            initializer = functools.partial(initializer, **initializer_kwargs)
             self._solver = gromov_wasserstein.GromovWasserstein(
-                rank=rank,
-                linear_ot_solver=linear_ot_solver,
-                quad_initializer=initializer,
-                kwargs_init=initializer_kwargs,
+                linear_solver=linear_solver,
+                initializer=initializer,
                 **kwargs,
             )
 
