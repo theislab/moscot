@@ -398,7 +398,5 @@ class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
         out.plot_errors()
 
     def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(store_inner_errors=True)(
-            a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y
-        )
+        out = GWSolver(store_inner_errors=True)(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y)
         out.plot_errors()
