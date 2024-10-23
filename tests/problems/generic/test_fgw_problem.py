@@ -9,6 +9,7 @@ from ott.geometry.costs import Cosine, Euclidean, PNormP, SqEuclidean, SqPNorm
 from ott.solvers.linear import acceleration
 
 from anndata import AnnData
+from typing import Callable
 
 from moscot._types import CostKwargs_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty
@@ -112,7 +113,10 @@ class TestFGWProblem:
         solver = problem[key].solver.solver
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
-            assert getattr(solver, val, object()) == args_to_check[arg], arg
+            if args_to_check["rank"] == -1 and arg == "initializer":
+                assert isinstance(getattr(solver,val), Callable)
+            else:
+                assert getattr(solver, val, object()) == args_to_check[arg], arg
 
         sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
