@@ -114,7 +114,7 @@ class TestFGWProblem:
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
             if args_to_check["rank"] == -1 and arg == "initializer":
-                assert isinstance(getattr(solver,val), Callable)
+                assert isinstance(getattr(solver, val), Callable)
             else:
                 assert getattr(solver, val, object()) == args_to_check[arg], arg
 
