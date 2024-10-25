@@ -54,7 +54,7 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax[neural]>=0.4.6",
+    "ott-jax[neural]>=0.4.6,<=0.4.8",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
     "docstring_inheritance>=2.0.0",
