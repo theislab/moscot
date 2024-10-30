@@ -72,7 +72,7 @@ class ProblemManager(Generic[K, B]):
             if isinstance(self._compound_problem, CompoundProblem)
             else OTProblem
         )
-        if not isinstance(problem, clazz):  # type:ignore[arg-type]
+        if not isinstance(problem, clazz):
             raise TypeError(f"Expected problem of type `{OTProblem}`, found `{type(problem)}`.")
 
         self.problems[key] = problem
