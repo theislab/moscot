@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 import itertools
-import pathlib
 import types
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
-    Iterator,
     Literal,
     Mapping,
     Optional,
-    Protocol,
     Sequence,
     Union,
 )
@@ -24,125 +20,12 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.base.problems.birth_death import BirthDeathProblem
+from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.tagged_array import Tag
 
 __all__ = ["TemporalMixin"]
-
-
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[misc]
-    adata: AnnData
-    problems: dict[tuple[K, K], BirthDeathProblem]
-    temporal_key: Optional[str]
-    _temporal_key: Optional[str]
-
-    def cell_transition(  # noqa: D102
-        self: TemporalMixinProtocol[K, B],
-        source: K,
-        target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
-        key_added: Optional[str] = _constants.CELL_TRANSITION,
-    ) -> pd.DataFrame: ...
-
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]: ...
-
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]: ...
-
-    def _cell_transition(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame: ...
-
-    def _annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame: ...
-
-    def _sample_from_tmap(
-        self: TemporalMixinProtocol[K, B],
-        source: K,
-        target: K,
-        n_samples: int,
-        source_dim: int,
-        target_dim: int,
-        batch_size: int = 256,
-        account_for_unbalancedness: bool = False,
-        interpolation_parameter: Optional[float] = None,
-        seed: Optional[int] = None,
-    ) -> tuple[list[Any], list[ArrayLike]]: ...
-
-    def _compute_wasserstein_distance(
-        self: TemporalMixinProtocol[K, B],
-        point_cloud_1: ArrayLike,
-        point_cloud_2: ArrayLike,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-        backend: Literal["ott"] = "ott",
-        **kwargs: Any,
-    ) -> float: ...
-
-    def _interpolate_gex_with_ot(
-        self: TemporalMixinProtocol[K, B],
-        number_cells: int,
-        source_data: ArrayLike,
-        target_data: ArrayLike,
-        source: K,
-        target: K,
-        interpolation_parameter: float,
-        account_for_unbalancedness: bool = True,
-        batch_size: int = 256,
-        seed: Optional[int] = None,
-    ) -> ArrayLike: ...
-
-    def _get_data(
-        self: TemporalMixinProtocol[K, B],
-        source: K,
-        intermediate: Optional[K] = None,
-        target: Optional[K] = None,
-        posterior_marginals: bool = True,
-        *,
-        only_start: bool = False,
-    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]: ...
-
-    def _interpolate_gex_randomly(
-        self: TemporalMixinProtocol[K, B],
-        number_cells: int,
-        source_data: ArrayLike,
-        target_data: ArrayLike,
-        interpolation_parameter: float,
-        growth_rates: Optional[ArrayLike] = None,
-        seed: Optional[int] = None,
-    ) -> ArrayLike: ...
-
-    def _plot_temporal(
-        self: TemporalMixinProtocol[K, B],
-        data: dict[K, ArrayLike],
-        source: K,
-        target: K,
-        time_points: Optional[Iterable[K]] = None,
-        basis: str = "umap",
-        result_key: Optional[str] = None,
-        fill_value: float = 0.0,
-        save: Optional[Union[str, pathlib.Path]] = None,
-        **kwargs: Any,
-    ) -> None: ...
-
-    @staticmethod
-    def _get_interp_param(
-        source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> float: ...
-
-    def __iter__(self) -> Iterator[tuple[K, K]]: ...
 
 
 class TemporalMixin(AnalysisMixin[K, B]):
@@ -153,7 +36,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self._temporal_key: Optional[str] = None
 
     def cell_transition(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         source_groups: Str_Dict_t,
@@ -228,7 +111,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
 
     def annotation_mapping(
-        self: TemporalMixinProtocol[K, B],
+        self,
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
@@ -283,7 +166,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
 
     def sankey(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         source_groups: Str_Dict_t,
@@ -405,7 +288,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)  # noqa: RET503
 
     def push(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -472,7 +355,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return result
 
     def pull(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -538,7 +421,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return result
 
     @property
-    def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+    def prior_growth_rates(self) -> Optional[pd.DataFrame]:
         """Prior estimate of the source growth rates."""
         computed = [isinstance(p.prior_growth_rates, np.ndarray) for p in self.problems.values()]
         if not np.sum(computed):
@@ -556,7 +439,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
-    def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+    def posterior_growth_rates(self) -> Optional[pd.DataFrame]:
         """Posterior estimate of the source growth rates."""
         computed = [isinstance(p.posterior_growth_rates, np.ndarray) for p in self.problems.values()]
         if not np.sum(computed):
@@ -574,7 +457,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
-    def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+    def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """Cell cost obtained by the :term:`first dual potential <dual potentials>`.
 
         Only available for subproblems with :attr:`problem_kind = 'linear' <problem_kind>`.
@@ -599,7 +482,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
-    def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+    def cell_costs_target(self) -> Optional[pd.DataFrame]:
         """Cell cost obtained by the :term:`second dual potential <dual potentials>`.
 
         Only available for subproblems with :attr:`problem_kind = 'linear' <problem_kind>`.
@@ -624,7 +507,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return pd.concat([df_1, df_2], verify_integrity=True)
 
     def _get_data(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         intermediate: Optional[K] = None,
         target: Optional[K] = None,
@@ -673,7 +556,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
 
     def compute_interpolated_distance(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         intermediate: K,
         target: K,
@@ -757,7 +640,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return self._compute_wasserstein_distance(intermediate_data, interpolation, backend=backend, **kwargs)
 
     def compute_random_distance(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         intermediate: K,
         target: K,
@@ -831,7 +714,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return self._compute_wasserstein_distance(intermediate_data, random_interpolation, backend=backend, **kwargs)
 
     def compute_time_point_distances(
-        self: TemporalMixinProtocol[K, B],
+        self,
         source: K,
         intermediate: K,
         target: K,
@@ -884,7 +767,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return distance_source_intermediate, distance_intermediate_target
 
     def compute_batch_distances(
-        self: TemporalMixinProtocol[K, B],
+        self,
         time: K,
         batch_key: str,
         posterior_marginals: bool = True,
@@ -936,7 +819,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
     def _compute_wasserstein_distance(
-        self: TemporalMixinProtocol[K, B],
+        self,
         point_cloud_1: ArrayLike,
         point_cloud_2: ArrayLike,
         a: Optional[ArrayLike] = None,
@@ -951,7 +834,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         raise NotImplementedError("Only `ott` available as backend.")
 
     def _interpolate_gex_with_ot(
-        self: TemporalMixinProtocol[K, B],
+        self,
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -979,7 +862,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
 
     def _interpolate_gex_randomly(
-        self: TemporalMixinProtocol[K, B],
+        self,
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -1026,7 +909,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return self._temporal_key
 
     @temporal_key.setter
-    def temporal_key(self: TemporalMixinProtocol[K, B], key: Optional[str]) -> None:
+    def temporal_key(self, key: Optional[str]) -> None:
         if key is None:
             self._temporal_key = key
             return

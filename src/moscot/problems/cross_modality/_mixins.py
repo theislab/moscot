@@ -7,24 +7,10 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import B, K
 
 __all__ = ["CrossModalityTranslationMixin"]
-
-
-class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
-    """Protocol class."""
-
-    adata_src: AnnData
-    adata_tgt: AnnData
-    _src_attr: Optional[Dict[str, Any]]
-    _tgt_attr: Optional[Dict[str, Any]]
-    batch_key: Optional[str]
-
-    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
-
-    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
 
 
 class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
@@ -37,7 +23,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         self._batch_key: Optional[str] = None
 
     def translate(  # type: ignore[misc]
-        self: CrossModalityTranslationMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         forward: bool = True,
@@ -107,7 +93,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         return prob.push(_get_features(adata_src, attr=src_attr), **kwargs)
 
     def cell_transition(  # type: ignore[misc]
-        self: CrossModalityTranslationMixinProtocol[K, B],
+        self,
         source: K,
         target: Optional[K] = None,
         source_groups: Optional[Str_Dict_t] = None,
@@ -186,7 +172,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         )
 
     def annotation_mapping(  # type: ignore[misc]
-        self: CrossModalityTranslationMixinProtocol[K, B],
+        self,
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
