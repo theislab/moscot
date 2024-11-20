@@ -2,15 +2,7 @@ from __future__ import annotations
 
 import itertools
 import types
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd

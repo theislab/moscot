@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
 
-
 from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin
