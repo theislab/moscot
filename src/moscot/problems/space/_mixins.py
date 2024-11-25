@@ -30,13 +30,13 @@ from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import B, K
-from moscot.base.problems.problem import AbstractSpSc, AbstractSrcTgt
+from moscot.base.problems.problem import AbstractSpSc
 from moscot.utils.subset_policy import StarPolicy
 
 __all__ = ["SpatialAlignmentMixin", "SpatialMappingMixin"]
 
 
-class SpatialAlignmentMixin(AnalysisMixin[K, B], AbstractSrcTgt):
+class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     """Spatial alignment mixin class."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
