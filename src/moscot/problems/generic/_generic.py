@@ -776,7 +776,7 @@ class FGWProblem(GWProblem[K, B]):
         return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
 
 
-class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
+class GENOTLinProblem(CondOTProblem):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
 
     def prepare(
