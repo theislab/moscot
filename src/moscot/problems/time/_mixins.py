@@ -141,7 +141,7 @@ class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
         scale_by_marginals
-            TODO
+            Whether to scale by the source/target :term:`marginals`.
 
         Returns
         -------

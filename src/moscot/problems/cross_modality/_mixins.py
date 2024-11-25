@@ -210,7 +210,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B], AbstractSrcTgt):
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
         scale_by_marginals
-            TODO
+            Whether to scale by the source/target :term:`marginals`.
 
 
         Returns

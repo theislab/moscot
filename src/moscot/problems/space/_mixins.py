@@ -265,9 +265,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
         other_adata
-            TODO
+            Other adata object to use for the cell transitions.
         scale_by_marginals
-            TODO
+            Whether to scale by the source/target :term:`marginals`.
 
         Returns
         -------
@@ -677,7 +677,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B], AbstractSpSc):
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
         scale_by_marginals
-            todo
+            Whether to scale by the source/target :term:`marginals`.
 
         Returns
         -------
