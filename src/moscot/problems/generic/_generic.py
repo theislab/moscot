@@ -128,7 +128,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'linear'``.
         """
-        self.batch_key = key  # type: ignore[misc]
+        self.batch_key = key
         xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         xy, _, _ = handle_cost(
             xy=xy,
@@ -366,7 +366,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        self.batch_key = key  # type: ignore[misc]
+        self.batch_key = key
         x = set_quad_defaults(x_attr) if x_callback is None else {}
         y = set_quad_defaults(y_attr) if y_callback is None else {}
 
@@ -630,7 +630,7 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        self.batch_key = key  # type: ignore[misc]
+        self.batch_key = key
         x = set_quad_defaults(x_attr) if x_callback is None else {}
         y = set_quad_defaults(y_attr) if y_callback is None else {}
         xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
@@ -792,7 +792,7 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "GENOTLinProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.GENOTLinProblem`."""
-        self.batch_key = key  # type:ignore[misc]
+        self.batch_key = key
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
         conditions = handle_conditional_attr(conditional_attr)
         xy, xx = handle_cost_tmp(xy=xy, x={}, y={}, cost=cost, cost_kwargs=cost_kwargs)

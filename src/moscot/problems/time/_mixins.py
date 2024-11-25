@@ -14,13 +14,14 @@ from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.base.problems.problem import AbstractSolutionsProblems
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.tagged_array import Tag
 
 __all__ = ["TemporalMixin"]
 
 
-class TemporalMixin(AnalysisMixin[K, B]):
+class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -111,7 +112,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         target: K,
         batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Mapping[str, Any],
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -139,6 +140,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             If :obj:`None`, the entire cost matrix will be materialized.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+        scale_by_marginals
+            todo
 
         Returns
         -------
@@ -154,7 +157,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             other_adata=None,
             batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
-            **kwargs,
+            scale_by_marginals=scale_by_marginals,
         )
 
     def sankey(
@@ -220,7 +223,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
           :attr:`uns['moscot_results']['sankey']['{key_added}'] <anndata.AnnData.uns>`
         """
         tuples = self._policy.plan(start=source, end=target)
-        cell_transitions = []
+        cell_transitions: list[Any] = []
         for src, tgt in tuples:
             cell_transitions.append(
                 self.cell_transition(
@@ -462,7 +465,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
-                np.asarray(problem.solution.potentials[0]),  # type: ignore[union-attr,index]
+                np.asarray(problem.solution.potentials[0]),
                 index=problem.adata_src.obs_names,
                 columns=cols,
             )
@@ -487,7 +490,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
-                np.array(problem.solution.potentials[1]),  # type: ignore[union-attr,index]
+                np.array(problem.solution.potentials[1]),
                 index=problem.adata_tgt.obs_names,
                 columns=cols,
             )
@@ -509,14 +512,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
     ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO: use .items()
         for src, tgt in self.problems:
-            tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
+            tag = self.problems[src, tgt].xy.tag
             if tag != Tag.POINT_CLOUD:
-                raise ValueError(
-                    f"Expected `tag={Tag.POINT_CLOUD}`, "
-                    f"found `tag={self.problems[src, tgt].xy.tag}`."  # type: ignore[union-attr]
-                )
+                raise ValueError(f"Expected `tag={Tag.POINT_CLOUD}`, " f"found `tag={self.problems[src, tgt].xy.tag}`.")
             if src == source:
-                source_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
+                source_data = self.problems[src, tgt].xy.data_src
                 if only_start:
                     return source_data, self.problems[src, tgt].adata_src
                 # TODO(michalk8): posterior marginals
@@ -527,19 +527,19 @@ class TemporalMixin(AnalysisMixin[K, B]):
             raise ValueError(f"No data found for `{source}` time point.")
         for src, tgt in self.problems:
             if src == intermediate:
-                intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
+                intermediate_data = self.problems[src, tgt].xy.data_src
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
         for src, tgt in self.problems:
             if tgt == target:
-                target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
+                target_data = self.problems[src, tgt].xy.data_tgt
                 break
         else:
             raise ValueError(f"No data found for `{target}` time point.")
 
-        return (  # type:ignore[return-value]
+        return (
             source_data,
             growth_rates_source,
             intermediate_data,

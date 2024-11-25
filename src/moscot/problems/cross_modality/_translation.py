@@ -22,7 +22,7 @@ from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 __all__ = ["TranslationProblem"]
 
 
-class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
+class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslationMixin[K, OTProblem]):
     """Class for integrating single-cell multi-omics data, based on :cite:`demetci-scot:22`.
 
     Parameters

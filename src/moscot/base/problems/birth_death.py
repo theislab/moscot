@@ -8,13 +8,13 @@ from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
-from moscot.base.problems.problem import OTProblem
+from moscot.base.problems.problem import AbstractAdataAccess, OTProblem
 from moscot.utils.data import apoptosis_markers, proliferation_markers
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
 
-class BirthDeathMixin:
+class BirthDeathMixin(AbstractAdataAccess):
     """Mixin class used to estimate cell proliferation and apoptosis.
 
     Parameters
@@ -88,7 +88,7 @@ class BirthDeathMixin:
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
 
-        return self  # type: ignore[return-value]
+        return self
 
     @property
     def proliferation_key(self) -> Optional[str]:

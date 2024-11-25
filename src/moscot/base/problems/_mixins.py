@@ -32,6 +32,10 @@ from moscot.base.problems._utils import (
     _validate_args_cell_transition,
 )
 from moscot.base.problems.compound_problem import B, K
+from moscot.base.problems.problem import (
+    AbstractPushPullAdata,
+    AbstractSolutionsProblems,
+)
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.data import transcription_factors
 from moscot.utils.subset_policy import SubsetPolicy
@@ -39,7 +43,7 @@ from moscot.utils.subset_policy import SubsetPolicy
 __all__ = ["AnalysisMixin"]
 
 
-class AnalysisMixin(Generic[K, B]):
+class AnalysisMixin(Generic[K, B], AbstractPushPullAdata, AbstractSolutionsProblems):
     """Base Analysis Mixin."""
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -48,7 +52,7 @@ class AnalysisMixin(Generic[K, B]):
     def _cell_transition(
         self,
         source: K,
-        target: K,
+        target: Optional[K],
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
@@ -130,7 +134,7 @@ class AnalysisMixin(Generic[K, B]):
         self,
         key: Optional[str],
         source: K,
-        target: K,
+        target: Optional[K],
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -189,7 +193,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=False,
                 **move_op_const_kwargs,
             )
-            tm = self._annotation_aggregation_transition(  # type: ignore[attr-defined]
+            tm = self._annotation_aggregation_transition(
                 annotations_1=source_annotations_verified if forward else target_annotations_verified,
                 annotations_2=target_annotations_verified if forward else source_annotations_verified,
                 df=df_to,
@@ -203,7 +207,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 **move_op_const_kwargs,
             )
-            tm = self._cell_aggregation_transition(  # type: ignore[attr-defined]
+            tm = self._cell_aggregation_transition(
                 df_from=df_from,
                 df_to=df_to,
                 annotations=target_annotations_verified if forward else source_annotations_verified,
@@ -623,7 +627,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 key_added=None,
             )
-            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dists + c, **kwargs)  # type: ignore[operator]
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dists + c, **kwargs)
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None
