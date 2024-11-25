@@ -210,7 +210,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B], AbstractSrcTgt):
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
         scale_by_marginals
-            todo
+            TODO
 
 
         Returns
@@ -227,7 +227,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B], AbstractSrcTgt):
             other_adata=self.adata_tgt,
             batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
-            scale_by_marginals=True,
+            scale_by_marginals=scale_by_marginals,
         )
 
     @property

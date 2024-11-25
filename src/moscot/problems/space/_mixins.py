@@ -265,9 +265,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
         other_adata
-            The other :class:`~anndata.AnnData` object to use for the cell transition.
+            TODO
         scale_by_marginals
-            If :obj:`True`, scale the transition matrix by marginals.
+            TODO
 
         Returns
         -------
