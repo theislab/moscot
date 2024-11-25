@@ -790,7 +790,7 @@ class GENOTLinProblem(CondOTProblem):
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         **kwargs: Any,
-    ) -> "GENOTLinProblem[K, B]":
+    ) -> "GENOTLinProblem":
         """Prepare the :class:`moscot.problems.generic.GENOTLinProblem`."""
         self.batch_key = key
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
@@ -816,7 +816,7 @@ class GENOTLinProblem(CondOTProblem):
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
         **kwargs: Any,
-    ) -> "GENOTLinProblem[K, B]":
+    ) -> "GENOTLinProblem":
         """Solve."""
         return super().solve(
             batch_size=batch_size,
