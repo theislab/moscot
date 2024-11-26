@@ -28,63 +28,12 @@ from anndata import AnnData
 from moscot import _constants
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, Str_Dict_t
-from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import B, K
+from moscot.base.problems.problem import AbstractSpSc
 from moscot.utils.subset_policy import StarPolicy
 
 __all__ = ["SpatialAlignmentMixin", "SpatialMappingMixin"]
-
-
-class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
-    """Protocol class."""
-
-    spatial_key: Optional[str]
-    _spatial_key: Optional[str]
-    batch_key: Optional[str]
-
-    def _subset_spatial(  # type:ignore[empty-body]
-        self: "SpatialAlignmentMixinProtocol[K, B]",
-        k: K,
-        spatial_key: str,
-    ) -> ArrayLike: ...
-
-    def _interpolate_scheme(  # type:ignore[empty-body]
-        self: "SpatialAlignmentMixinProtocol[K, B]",
-        reference: K,
-        mode: Literal["warp", "affine"],
-        spatial_key: str,
-    ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]: ...
-
-    def _cell_transition(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame: ...
-
-    def _annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame: ...
-
-
-class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
-    """Protocol class."""
-
-    adata_sc: AnnData
-    adata_sp: AnnData
-    batch_key: Optional[str]
-    spatial_key: Optional[str]
-    _spatial_key: Optional[str]
-
-    def _filter_vars(
-        self: "SpatialMappingMixinProtocol[K, B]",
-        var_names: Optional[Sequence[str]] = None,
-    ) -> Optional[List[str]]: ...
-
-    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
-
-    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
 
 
 class SpatialAlignmentMixin(AnalysisMixin[K, B]):
@@ -95,8 +44,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self._spatial_key: Optional[str] = None
         self._batch_key: Optional[str] = None
 
-    def _interpolate_scheme(  # type: ignore[misc]
-        self: SpatialAlignmentMixinProtocol[K, B],
+    def _interpolate_scheme(
+        self,
         reference: K,
         mode: Literal["warp", "affine"],
         spatial_key: str,
@@ -139,8 +88,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         # TODO(michalk8): always return the metadata?
         return transport_maps, (transport_metadata if mode == "affine" else None)
 
-    def align(  # type: ignore[misc]
-        self: SpatialAlignmentMixinProtocol[K, B],
+    def align(
+        self,
         reference: Optional[K] = None,
         mode: Literal["warp", "affine"] = "warp",
         spatial_key: Optional[str] = None,
@@ -199,8 +148,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             self.adata.uns.setdefault(key_added, {})
             self.adata.uns[key_added]["alignment_metadata"] = aligned_metadata  # noqa: RET503
 
-    def cell_transition(  # type: ignore[misc]
-        self: SpatialAlignmentMixinProtocol[K, B],
+    def cell_transition(
+        self,
         source: K,
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
@@ -277,16 +226,17 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def annotation_mapping(  # type: ignore[misc]
-        self: SpatialAlignmentMixinProtocol[K, B],
+    def annotation_mapping(
+        self,
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
-        source: str = "src",
-        target: str = "tgt",
+        source: K = "src",
+        target: K = "tgt",
         batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Mapping[str, Any],
+        other_adata: Optional[AnnData] = None,
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -314,6 +264,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             If :obj:`None`, the entire cost matrix will be materialized.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+        other_adata
+            Other adata object to use for the cell transitions.
+        scale_by_marginals
+            Whether to scale by the source/target :term:`marginals`.
 
         Returns
         -------
@@ -328,7 +282,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             forward=forward,
             batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
-            **kwargs,
+            other_adata=other_adata,
+            scale_by_marginals=scale_by_marginals,
         )
 
     @property
@@ -337,7 +292,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:  # type: ignore[misc]
+    def spatial_key(self, key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obsm:
             raise KeyError(f"Unable to find spatial data in `adata.obsm[{key!r}]`.")
         self._spatial_key = key
@@ -349,12 +304,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
     @batch_key.setter
     def batch_key(self, key: Optional[str]) -> None:
-        if key is not None and key not in self.adata.obs:  # type: ignore[attr-defined]
+        if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key
 
-    def _subset_spatial(  # type: ignore[misc]
-        self: SpatialAlignmentMixinProtocol[K, B],
+    def _subset_spatial(
+        self,
         k: K,
         spatial_key: str,
     ) -> ArrayLike:
@@ -362,7 +317,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self.adata[mask].obsm[spatial_key].astype(float, copy=True)
 
 
-class SpatialMappingMixin(AnalysisMixin[K, B]):
+class SpatialMappingMixin(AnalysisMixin[K, B], AbstractSpSc):
     """Spatial mapping analysis mixin class."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -370,8 +325,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         self._batch_key: Optional[str] = None
         self._spatial_key: Optional[str] = None
 
-    def _filter_vars(  # type: ignore[misc]
-        self: SpatialMappingMixinProtocol[K, B],
+    def _filter_vars(
+        self,
         var_names: Optional[Sequence[str]] = None,
     ) -> Optional[List[str]]:
         """Filter variables for the linear term."""
@@ -392,8 +347,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         raise ValueError("Some variable are missing in the single-cell or the spatial `AnnData`.")
 
-    def correlate(  # type: ignore[misc]
-        self: SpatialMappingMixinProtocol[K, B],
+    def correlate(
+        self,
         var_names: Optional[Sequence[str]] = None,
         corr_method: Literal["pearson", "spearman"] = "pearson",
         device: Optional[Device_t] = None,
@@ -491,8 +446,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         return corrs
 
-    def impute(  # type: ignore[misc]
-        self: SpatialMappingMixinProtocol[K, B],
+    def impute(
+        self,
         var_names: Optional[Sequence[str]] = None,
         device: Optional[Device_t] = None,
         batch_size: Optional[int] = None,
@@ -546,8 +501,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         return adata_pred
 
-    def spatial_correspondence(  # type: ignore[misc]
-        self: SpatialMappingMixinProtocol[K, B],
+    def spatial_correspondence(
+        self,
         interval: Union[int, ArrayLike] = 10,
         max_dist: Optional[int] = None,
         attr: Optional[Dict[str, Optional[str]]] = None,
@@ -607,8 +562,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         res[self.batch_key] = res[self.batch_key].astype("category")  # type: ignore[call-overload]
         return res
 
-    def cell_transition(  # type: ignore[misc]
-        self: SpatialMappingMixinProtocol[K, B],
+    def cell_transition(
+        self,
         source: K,
         target: Optional[K] = None,
         source_groups: Optional[Str_Dict_t] = None,
@@ -672,7 +627,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         return self._cell_transition(
             key=self.batch_key,
             source=source,
-            target=target,
+            target=target or None,
             source_groups=source_groups,
             target_groups=target_groups,
             forward=forward,
@@ -684,16 +639,16 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def annotation_mapping(  # type: ignore[misc]
-        self: SpatialMappingMixinProtocol[K, B],
+    def annotation_mapping(
+        self,
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         source: K,
-        target: Union[K, str] = "tgt",
+        target: K = "tgt",
         forward: bool = False,
         batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Mapping[str, Any],
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -721,6 +676,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             If :obj:`None`, the entire cost matrix will be materialized.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+        scale_by_marginals
+            Whether to scale by the source/target :term:`marginals`.
 
         Returns
         -------
@@ -736,7 +693,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             other_adata=self.adata_sc,
             batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
-            **kwargs,
+            scale_by_marginals=scale_by_marginals,
         )
 
     @property
@@ -746,7 +703,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @batch_key.setter
     def batch_key(self, key: Optional[str]) -> None:
-        if key is not None and key not in self.adata.obs:  # type: ignore[attr-defined]
+        if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key
 
@@ -756,7 +713,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:  # type: ignore[misc]
+    def spatial_key(self, key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obsm:
             raise KeyError(f"Unable to find spatial data in `adata.obsm[{key!r}]`.")
         self._spatial_key = key

@@ -11,7 +11,6 @@ from typing import (
     Literal,
     Mapping,
     Optional,
-    Protocol,
     Sequence,
     Union,
 )
@@ -21,11 +20,9 @@ import pandas as pd
 from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
-from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
     _correlation_test,
@@ -34,7 +31,11 @@ from moscot.base.problems._utils import (
     _validate_annotations,
     _validate_args_cell_transition,
 )
-from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.base.problems.compound_problem import B, K
+from moscot.base.problems.problem import (
+    AbstractPushPullAdata,
+    AbstractSolutionsProblems,
+)
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.data import transcription_factors
 from moscot.utils.subset_policy import SubsetPolicy
@@ -42,96 +43,16 @@ from moscot.utils.subset_policy import SubsetPolicy
 __all__ = ["AnalysisMixin"]
 
 
-class AnalysisMixinProtocol(Protocol[K, B]):
-    """Protocol class."""
-
-    adata: AnnData
-    _policy: SubsetPolicy[K]
-    solutions: dict[tuple[K, K], BaseDiscreteSolverOutput]
-    problems: dict[tuple[K, K], B]
-
-    def _apply(
-        self,
-        data: Optional[Union[str, ArrayLike]] = None,
-        source: Optional[K] = None,
-        target: Optional[K] = None,
-        forward: bool = True,
-        return_all: bool = False,
-        scale_by_marginals: bool = False,
-        **kwargs: Any,
-    ) -> ApplyOutput_t[K]: ...
-
-    def _interpolate_transport(
-        self: AnalysisMixinProtocol[K, B],
-        path: Sequence[tuple[K, K]],
-        scale_by_marginals: bool = True,
-    ) -> LinearOperator: ...
-
-    def _flatten(
-        self: AnalysisMixinProtocol[K, B],
-        data: dict[K, ArrayLike],
-        *,
-        key: Optional[str],
-    ) -> ArrayLike: ...
-
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        """Push distribution."""
-        ...
-
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        """Pull distribution."""
-        ...
-
-    def _cell_transition(
-        self: AnalysisMixinProtocol[K, B],
-        source: K,
-        target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        key_added: Optional[str] = _constants.CELL_TRANSITION,
-        **kwargs: Any,
-    ) -> pd.DataFrame: ...
-
-    def _cell_transition_online(
-        self: AnalysisMixinProtocol[K, B],
-        key: Optional[str],
-        source: K,
-        target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
-    ) -> pd.DataFrame: ...
-
-    def _annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
-        mapping_mode: Literal["sum", "max"],
-        annotation_label: str,
-        forward: bool,
-        source: K,
-        target: K,
-        key: str | None = None,
-        other_adata: Optional[str] = None,
-        scale_by_marginals: bool = True,
-        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-    ) -> pd.DataFrame: ...
-
-
-class AnalysisMixin(Generic[K, B]):
+class AnalysisMixin(Generic[K, B], AbstractPushPullAdata, AbstractSolutionsProblems):
     """Base Analysis Mixin."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
     def _cell_transition(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         source: K,
-        target: K,
+        target: Optional[K],
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
@@ -178,7 +99,7 @@ class AnalysisMixin(Generic[K, B]):
         return tm
 
     def _annotation_aggregation_transition(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         annotations_1: list[Any],
         annotations_2: list[Any],
         df: pd.DataFrame,
@@ -210,10 +131,10 @@ class AnalysisMixin(Generic[K, B]):
         )
 
     def _cell_transition_online(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         key: Optional[str],
         source: K,
-        target: K,
+        target: Optional[K],
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -272,7 +193,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=False,
                 **move_op_const_kwargs,
             )
-            tm = self._annotation_aggregation_transition(  # type: ignore[attr-defined]
+            tm = self._annotation_aggregation_transition(
                 annotations_1=source_annotations_verified if forward else target_annotations_verified,
                 annotations_2=target_annotations_verified if forward else source_annotations_verified,
                 df=df_to,
@@ -286,7 +207,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 **move_op_const_kwargs,
             )
-            tm = self._cell_aggregation_transition(  # type: ignore[attr-defined]
+            tm = self._cell_aggregation_transition(
                 df_from=df_from,
                 df_to=df_to,
                 annotations=target_annotations_verified if forward else source_annotations_verified,
@@ -309,7 +230,7 @@ class AnalysisMixin(Generic[K, B]):
         )
 
     def _annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         source: K,
@@ -394,7 +315,7 @@ class AnalysisMixin(Generic[K, B]):
         raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 
     def _sample_from_tmap(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         n_samples: int,
@@ -472,7 +393,7 @@ class AnalysisMixin(Generic[K, B]):
         return rows, all_cols_sampled  # type: ignore[return-value]
 
     def _interpolate_transport(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
         path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
@@ -485,7 +406,7 @@ class AnalysisMixin(Generic[K, B]):
         fst, *rest = path
         return self.solutions[fst].chain([self.solutions[r] for r in rest], scale_by_marginals=scale_by_marginals)
 
-    def _flatten(self: AnalysisMixinProtocol[K, B], data: dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+    def _flatten(self, data: dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         tmp = np.full(len(self.adata), np.nan)
         for k, v in data.items():
             mask = self.adata.obs[key] == k
@@ -493,7 +414,7 @@ class AnalysisMixin(Generic[K, B]):
         return tmp
 
     def _cell_aggregation_transition(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         df_from: pd.DataFrame,
         df_to: pd.DataFrame,
         annotations: list[Any],
@@ -540,7 +461,7 @@ class AnalysisMixin(Generic[K, B]):
     # adapted from:
     # https://github.com/theislab/cellrank/blob/master/cellrank/_utils/_utils.py#L392
     def compute_feature_correlation(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         obs_key: str,
         corr_method: Literal["pearson", "spearman"] = "pearson",
         significance_method: Literal["fisher", "perm_test"] = "fisher",
@@ -649,7 +570,7 @@ class AnalysisMixin(Generic[K, B]):
         )
 
     def compute_entropy(
-        self: AnalysisMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         forward: bool = True,
@@ -706,7 +627,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 key_added=None,
             )
-            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dists + c, **kwargs)  # type: ignore[operator]
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dists + c, **kwargs)
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None

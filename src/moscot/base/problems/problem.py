@@ -1,6 +1,7 @@
 import abc
 import pathlib
 import types
+from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -220,6 +221,93 @@ class BaseProblem(abc.ABC, metaclass=CombinedMeta):
     def problem_kind(self) -> ProblemKind_t:
         """Kind of the underlying problem."""
         return self._problem_kind
+
+
+class AbstractAdataAccess(ABC, metaclass=CombinedMeta):
+
+    @property
+    @abstractmethod
+    def adata(self) -> AnnData:
+        """Annotated data object."""
+        pass
+
+
+class AbstractPushPullAdata(AbstractAdataAccess):
+
+    @abstractmethod
+    def pull(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        pass
+
+    @abstractmethod
+    def push(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        pass
+
+    @abstractmethod
+    def _apply(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        pass
+
+
+class AbstractSolutionsProblems(ABC, metaclass=CombinedMeta):
+
+    @property
+    @abstractmethod
+    def solutions(self) -> Any:
+        """Solutions."""
+        pass
+
+    @property
+    @abstractmethod
+    def problems(self) -> Any:
+        """Problems."""
+        pass
+
+    @property
+    @abstractmethod
+    def _policy(self) -> Any:
+        """Subset policy."""
+        pass
+
+
+class AbstractSrcTgt(ABC, metaclass=CombinedMeta):
+
+    @property
+    @abstractmethod
+    def adata_src(self) -> AnnData:
+        """Annotated data object."""
+        pass
+
+    @property
+    @abstractmethod
+    def adata_tgt(self) -> AnnData:
+        """Annotated data object."""
+        pass
+
+
+class AbstractSpSc(ABC, metaclass=CombinedMeta):
+
+    @property
+    @abstractmethod
+    def adata_sp(self) -> AnnData:
+        """Annotated data object."""
+        pass
+
+    @property
+    @abstractmethod
+    def adata_sc(self) -> AnnData:
+        """Annotated data object."""
+        pass
 
 
 class OTProblem(BaseProblem):

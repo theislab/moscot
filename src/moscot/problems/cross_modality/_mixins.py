@@ -7,27 +7,14 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import B, K
+from moscot.base.problems.problem import AbstractSrcTgt
 
 __all__ = ["CrossModalityTranslationMixin"]
 
 
-class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
-    """Protocol class."""
-
-    adata_src: AnnData
-    adata_tgt: AnnData
-    _src_attr: Optional[Dict[str, Any]]
-    _tgt_attr: Optional[Dict[str, Any]]
-    batch_key: Optional[str]
-
-    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
-
-    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
-
-
-class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
+class CrossModalityTranslationMixin(AnalysisMixin[K, B], AbstractSrcTgt):
     """Cross modality translation analysis mixin class."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -36,8 +23,8 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         self._tgt_attr: Optional[Dict[str, Any]] = None
         self._batch_key: Optional[str] = None
 
-    def translate(  # type: ignore[misc]
-        self: CrossModalityTranslationMixinProtocol[K, B],
+    def translate(
+        self,
         source: K,
         target: K,
         forward: bool = True,
@@ -106,8 +93,8 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         adata_src = self.adata_src if self.batch_key is None else prob.adata_src
         return prob.push(_get_features(adata_src, attr=src_attr), **kwargs)
 
-    def cell_transition(  # type: ignore[misc]
-        self: CrossModalityTranslationMixinProtocol[K, B],
+    def cell_transition(
+        self,
         source: K,
         target: Optional[K] = None,
         source_groups: Optional[Str_Dict_t] = None,
@@ -185,16 +172,16 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def annotation_mapping(  # type: ignore[misc]
-        self: CrossModalityTranslationMixinProtocol[K, B],
+    def annotation_mapping(
+        self,
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
-        source: str = "src",
-        target: str = "tgt",
+        source: K = "src",
+        target: K = "tgt",
         batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Mapping[str, Any],
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -222,6 +209,9 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             If :obj:`None`, the entire cost matrix will be materialized.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+        scale_by_marginals
+            Whether to scale by the source/target :term:`marginals`.
+
 
         Returns
         -------
@@ -237,7 +227,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             other_adata=self.adata_tgt,
             batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
-            **kwargs,
+            scale_by_marginals=scale_by_marginals,
         )
 
     @property
@@ -247,6 +237,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
     @batch_key.setter
     def batch_key(self, key: Optional[str]) -> None:
-        if key is not None and key not in self.adata.obs:  # type: ignore[attr-defined]
+        if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key

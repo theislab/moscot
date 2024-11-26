@@ -1,14 +1,5 @@
 from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Literal,
-    Optional,
-    Protocol,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Sequence, Union
 
 import numpy as np
 
@@ -17,39 +8,13 @@ from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
-from moscot.base.problems.problem import OTProblem
+from moscot.base.problems.problem import AbstractAdataAccess, OTProblem
 from moscot.utils.data import apoptosis_markers, proliferation_markers
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
 
-class BirthDeathProtocol(Protocol):  # noqa: D101
-    adata: AnnData
-    proliferation_key: Optional[str]
-    apoptosis_key: Optional[str]
-    _proliferation_key: Optional[str]
-    _apoptosis_key: Optional[str]
-    _scaling: float
-    _prior_growth: Optional[ArrayLike]
-
-    def score_genes_for_marginals(  # noqa: D102
-        self: "BirthDeathProtocol",
-        gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
-        gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
-        proliferation_key: str = "proliferation",
-        apoptosis_key: str = "apoptosis",
-        **kwargs: Any,
-    ) -> "BirthDeathProtocol": ...
-
-
-class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
-    delta: float
-    adata_tgt: AnnData
-    a: Optional[ArrayLike]
-    b: Optional[ArrayLike]
-
-
-class BirthDeathMixin:
+class BirthDeathMixin(AbstractAdataAccess):
     """Mixin class used to estimate cell proliferation and apoptosis.
 
     Parameters
@@ -68,7 +33,7 @@ class BirthDeathMixin:
         self._prior_growth: Optional[ArrayLike] = None
 
     def score_genes_for_marginals(
-        self,  # type: BirthDeathProblemProtocol
+        self,
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         proliferation_key: str = "proliferation",
@@ -123,7 +88,7 @@ class BirthDeathMixin:
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
 
-        return self  # type: ignore[return-value]
+        return self
 
     @property
     def proliferation_key(self) -> Optional[str]:
@@ -131,7 +96,7 @@ class BirthDeathMixin:
         return self._proliferation_key
 
     @proliferation_key.setter
-    def proliferation_key(self: BirthDeathProtocol, key: Optional[str]) -> None:
+    def proliferation_key(self, key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find proliferation data in `adata.obs[{key!r}]`.")
         self._proliferation_key = key
@@ -142,7 +107,7 @@ class BirthDeathMixin:
         return self._apoptosis_key
 
     @apoptosis_key.setter
-    def apoptosis_key(self: BirthDeathProtocol, key: Optional[str]) -> None:
+    def apoptosis_key(self, key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find apoptosis data in `adata.obs[{key!r}]`.")
         self._apoptosis_key = key
@@ -161,7 +126,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
     """  # noqa: D205
 
     def estimate_marginals(
-        self,  # type: BirthDeathProblemProtocol
+        self,
         adata: AnnData,
         source: bool,
         proliferation_key: Optional[str] = None,
