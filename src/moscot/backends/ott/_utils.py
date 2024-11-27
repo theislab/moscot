@@ -132,7 +132,7 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
         return jnp.reshape(arr, (-1, 1))
     if arr.ndim != 2:
         raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-    return arr
+    return arr.astype(jnp.float64)
 
 
 def convert_scipy_sparse(arr: Union[sp.spmatrix, jesp.BCOO]) -> jesp.BCOO:
