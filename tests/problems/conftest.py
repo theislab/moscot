@@ -183,9 +183,8 @@ gw_solver_args = {
     "threshold": "threshold",
     "min_iterations": "min_iterations",
     "max_iterations": "max_iterations",
-    "initializer_kwargs": "kwargs_init",
-    "warm_start": "_warm_start",
-    "initializer": "quad_initializer",
+    "warm_start": "warm_start",
+    "initializer": "initializer",
 }
 
 gw_lr_solver_args = {
