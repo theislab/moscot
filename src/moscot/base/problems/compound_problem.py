@@ -47,7 +47,7 @@ Callback_t = Callable[[Literal["xy", "x", "y"], AnnData, Optional[AnnData]], Opt
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 
 
-class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
+class BaseCompoundProblem(BaseProblem, Generic[K, B], abc.ABC):
     """Base class for all biological problems.
 
     This class translates a biological problem to multiple :term:`OT` problems.

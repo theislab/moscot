@@ -1,30 +1,14 @@
-from typing import TYPE_CHECKING, Any, List, Literal, Optional, Protocol, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
 
-from anndata import AnnData
-
 from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems._mixins import AnalysisMixin
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.plotting._utils import set_plotting_vars
 
 __all__ = ["GenericAnalysisMixin"]
-
-
-class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
-    """Protocol class."""
-
-    _batch_key: Optional[str]
-    batch_key: Optional[str]
-    adata: AnnData
-
-    def _cell_transition(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame: ...
 
 
 class GenericAnalysisMixin(AnalysisMixin[K, B]):
@@ -35,7 +19,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         self._batch_key: Optional[str] = None
 
     def cell_transition(
-        self: GenericAnalysisMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
@@ -112,7 +96,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         )
 
     def push(
-        self: GenericAnalysisMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -181,7 +165,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         return result
 
     def pull(
-        self: GenericAnalysisMixinProtocol[K, B],
+        self,
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -247,12 +231,12 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         return result
 
     @property
-    def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:
+    def batch_key(self) -> Optional[str]:
         """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
-    def batch_key(self: GenericAnalysisMixinProtocol[K, B], key: Optional[str]) -> None:
+    def batch_key(self, key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key

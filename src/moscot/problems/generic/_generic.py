@@ -128,7 +128,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'linear'``.
         """
-        self.batch_key = key  # type: ignore[misc]
+        self.batch_key = key
         xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         xy, _, _ = handle_cost(
             xy=xy,
@@ -366,7 +366,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        self.batch_key = key  # type: ignore[misc]
+        self.batch_key = key
         x = set_quad_defaults(x_attr) if x_callback is None else {}
         y = set_quad_defaults(y_attr) if y_callback is None else {}
 
@@ -630,7 +630,7 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        self.batch_key = key  # type: ignore[misc]
+        self.batch_key = key
         x = set_quad_defaults(x_attr) if x_callback is None else {}
         y = set_quad_defaults(y_attr) if y_callback is None else {}
         xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
@@ -776,7 +776,7 @@ class FGWProblem(GWProblem[K, B]):
         return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
 
 
-class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
+class GENOTLinProblem(CondOTProblem):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
 
     def prepare(
@@ -790,9 +790,9 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         **kwargs: Any,
-    ) -> "GENOTLinProblem[K, B]":
+    ) -> "GENOTLinProblem":
         """Prepare the :class:`moscot.problems.generic.GENOTLinProblem`."""
-        self.batch_key = key  # type:ignore[misc]
+        self.batch_key = key
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
         conditions = handle_conditional_attr(conditional_attr)
         xy, xx = handle_cost_tmp(xy=xy, x={}, y={}, cost=cost, cost_kwargs=cost_kwargs)
@@ -816,7 +816,7 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
         **kwargs: Any,
-    ) -> "GENOTLinProblem[K, B]":
+    ) -> "GENOTLinProblem":
         """Solve."""
         return super().solve(
             batch_size=batch_size,
