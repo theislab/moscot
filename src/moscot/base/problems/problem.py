@@ -751,7 +751,7 @@ class OTProblem(BaseProblem):
         spatial = TaggedArray._extract_data(adata, attr=attr, key=key)
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
-        spatial = (spatial - spatial.mean()) / spatial.std()
+        spatial = (spatial - spatial.mean(axis=0)) / spatial.std()
         return TaggedArray(spatial, tag=Tag.POINT_CLOUD)
 
     @staticmethod

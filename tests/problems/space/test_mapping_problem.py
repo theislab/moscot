@@ -96,7 +96,6 @@ class TestMappingProblem:
             assert prob.x.data_src.shape == (n_obs, x_n_var)
             assert prob.y.data_src.shape == (n_obs, y_n_var)
 
-    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
         [(1e-2, 0.9, -1, None), (2, 0.5, 10, "random"), (2, 0.5, 10, "rank2"), (2, 0.1, -1, None)],

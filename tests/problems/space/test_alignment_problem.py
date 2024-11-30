@@ -51,8 +51,7 @@ class TestAlignmentProblem:
         ap = ap.prepare(batch_key="batch", joint_attr=joint_attr, normalize_spatial=normalize_spatial)
         assert len(ap) == 2
         if normalize_spatial:
-            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), ap[("0", "1")].x.data_src.std(), atol=1e-15)
-            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), 1.0, atol=1e-15)
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), ap[("0", "1")].y.data_src.std(), atol=1e-15)
             np.testing.assert_allclose(ap[("1", "2")].x.data_src.mean(), 0, atol=1e-15)
             np.testing.assert_allclose(ap[("0", "1")].x.data_src.mean(), 0, atol=1e-15)
 
@@ -75,7 +74,6 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
-    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
         [(1, 0.9, -1, None), (1, 0.5, 10, "random"), (1, 0.5, 10, "rank2"), (0.1, 0.1, -1, None)],
@@ -102,8 +100,7 @@ class TestAlignmentProblem:
         )
         for prob_key in ap:
             assert ap[prob_key].solution.rank == rank
-            if initializer != "random":  # TODO: is this valid?
-                assert ap[prob_key].solution.converged
+            assert ap[prob_key].solution.converged
 
         # TODO(michalk8): use np.testing
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
