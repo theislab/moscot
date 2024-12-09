@@ -2,6 +2,7 @@ import os
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
+from ott.initializers.quadratic.initializers import BaseQuadraticInitializer
 
 # TODO(michalk8): polish
 
@@ -20,8 +21,9 @@ Str_Dict_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type for `cell
 SinkFullRankInit = Literal["default", "gaussian", "sorting"]
 LRInitializer_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
 
+
 SinkhornInitializer_t = Optional[Union[SinkFullRankInit, LRInitializer_t]]
-QuadInitializer_t = Optional[LRInitializer_t]
+QuadInitializer_t = Optional[Union[LRInitializer_t, BaseQuadraticInitializer]]
 
 Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
 ProblemStage_t = Literal["prepared", "solved"]
