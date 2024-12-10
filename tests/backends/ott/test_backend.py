@@ -116,6 +116,7 @@ class TestGW:
             x=x,
             y=y,
             tags={"x": "point_cloud", "y": "point_cloud"},
+            alpha=1.0,
         )
 
         assert solver.is_fused is False
@@ -141,6 +142,7 @@ class TestGW:
             x=x_cost,
             y=y_cost,
             tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX},
+            alpha=1.0,
         )
 
         assert solver.is_fused is False
@@ -171,6 +173,7 @@ class TestGW:
             x=x,
             y=y,
             tags={"x": "point_cloud", "y": "point_cloud"},
+            alpha=1.0,
         )
 
         assert solver.is_fused is False
@@ -347,8 +350,8 @@ class TestSolverOutput:
         b, ndim = (b, b.shape[1]) if batched else (b[:, 0], None)
         xx, yy = xy
         solver = solver_t()
-
-        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, xy=(xx, yy))
+        additional_kwargs = {"alpha": 1.0} if xy is not None else {}
+        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, xy=(xx, yy), **additional_kwargs)
         p = out.pull(b, scale_by_marginals=False)
 
         assert isinstance(out, BaseDiscreteSolverOutput)
@@ -389,11 +392,11 @@ class TestSolverOutput:
 
 class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
     def test_plot_costs(self, x: Geom_t, y: Geom_t):
-        out = GWSolver()(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y)
+        out = GWSolver()(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, alpha=1.0)
         out.plot_costs()
 
     def test_plot_costs_last(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(rank=2)(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y)
+        out = GWSolver(rank=2)(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, alpha=1.0)
         out.plot_costs(last=3)
 
     def test_plot_errors_sink(self, x: Geom_t, y: Geom_t):
@@ -401,5 +404,5 @@ class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
         out.plot_errors()
 
     def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(store_inner_errors=True)(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y)
+        out = GWSolver(store_inner_errors=True)(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, alpha=1.0)
         out.plot_errors()

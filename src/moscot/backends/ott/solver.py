@@ -418,6 +418,7 @@ class GWSolver(OTTJaxSolver):
         self,
         a: jnp.ndarray,
         b: jnp.ndarray,
+        alpha: float,
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -430,7 +431,6 @@ class GWSolver(OTTJaxSolver):
         cost_matrix_rank: Optional[int] = None,
         time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
-        alpha: Optional[float] = None,
         **kwargs: Any,
     ) -> quadratic_problem.QuadraticProblem:
         self._a = a
