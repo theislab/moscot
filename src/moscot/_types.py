@@ -2,6 +2,8 @@ import os
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
+from ott.initializers.linear.initializers import SinkhornInitializer
+from ott.initializers.linear.initializers_lr import LRInitializer
 from ott.initializers.quadratic.initializers import BaseQuadraticInitializer
 
 # TODO(michalk8): polish
@@ -22,8 +24,8 @@ SinkFullRankInit = Literal["default", "gaussian", "sorting"]
 LRInitializer_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
 
 
-SinkhornInitializer_t = Optional[Union[SinkFullRankInit, LRInitializer_t]]
-QuadInitializer_t = Optional[Union[LRInitializer_t, BaseQuadraticInitializer]]
+SinkhornInitializer_t = Optional[Union[SinkhornInitializer, LRInitializer]]
+QuadInitializer_t = Optional[Union[BaseQuadraticInitializer]]
 
 Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
 ProblemStage_t = Literal["prepared", "solved"]

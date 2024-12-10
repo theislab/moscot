@@ -9,6 +9,8 @@ from ott.geometry import costs
 from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
+from ott.initializers.linear import initializers as init_lib
+from ott.initializers.linear import initializers_lr as lr_init_lib
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic import quadratic_problem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
@@ -26,6 +28,41 @@ from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Geom_t
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
+
+
+def create_lr_initializer(
+    initializer,
+    rank,
+    **kwargs,
+) -> lr_init_lib.LRInitializer:  # noqa: D102
+    if isinstance(initializer, lr_init_lib.LRInitializer):
+        return initializer
+    if initializer == "random":
+        return lr_init_lib.RandomInitializer(rank=rank, **kwargs)
+    if initializer == "rank2":
+        return lr_init_lib.Rank2Initializer(rank=rank, **kwargs)
+    if initializer == "k-means":
+        return lr_init_lib.KMeansInitializer(rank=rank, **kwargs)
+    if initializer == "generalized-k-means":
+        return lr_init_lib.GeneralizedKMeansInitializer(rank=rank, **kwargs)
+    raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")
+
+
+def create_fr_initializer(
+    initializer,
+    **kwargs,
+) -> init_lib.SinkhornInitializer:  # noqa: D102
+    if isinstance(initializer, init_lib.SinkhornInitializer):
+        return initializer
+    if initializer == "default":
+        return init_lib.DefaultInitializer(**kwargs)
+    if initializer == "gaussian":
+        return init_lib.GaussianInitializer(**kwargs)
+    if initializer == "sorting":
+        return init_lib.SortingInitializer(**kwargs)
+    if initializer == "subsample":
+        return init_lib.SubsampleInitializer(**kwargs)
+    raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")
 
 
 class TestSinkhorn:
@@ -52,6 +89,7 @@ class TestSinkhorn:
     def test_solver_rank(self, y: Geom_t, rank: Optional[int], initializer: str):
         eps = 1e-2
         default_gamma_lr_sinhorn = 500
+        initializer = create_lr_initializer(initializer, rank=rank)
         lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer, gamma=default_gamma_lr_sinhorn)
         problem = LinearProblem(PointCloud(y, epsilon=eps))
         gt = lr_sinkhorn(problem)
@@ -152,12 +190,13 @@ class TestGW:
     def test_solver_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         if rank > -1:
-            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer="rank2")(
+            initializer = lr_init_lib.RandomInitializer(rank=rank)
+            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer=initializer)(
                 QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
             )
 
         else:
-            gt = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn())(
+            gt = GromovWasserstein(epsilon=eps, threshold=thresh, linear_solver=Sinkhorn(threshold=thresh))(
                 QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
             )
 

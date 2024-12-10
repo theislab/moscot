@@ -23,7 +23,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
-from ott.initializers.quadratic import initializers as quad_initializers
 from ott.neural.datasets import OTData, OTDataset
 from ott.neural.methods.flows import dynamics, genot
 from ott.neural.networks.layers import time_encoder
@@ -89,15 +88,19 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ----------
     jit
         Whether to :func:`~jax.jit` the :attr:`solver`.
+    initializer_kwargs
+        Keyword arguments for the initializer.
     """
 
-    def __init__(self, jit: bool = True):
+    def __init__(self, jit: bool = True, initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({})):
         super().__init__()
         self._solver: Optional[OTTSolver_t] = None
         self._problem: Optional[OTTProblem_t] = None
         self._jit = jit
         self._a: Optional[jnp.ndarray] = None
         self._b: Optional[jnp.ndarray] = None
+
+        self.initializer_kwargs = initializer_kwargs
 
     def _create_geometry(
         self,
@@ -171,7 +174,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         **kwargs: Any,
     ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
-        out = solver(prob, **kwargs)
+        out = solver(prob, **self.initializer_kwargs, **kwargs)
         if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom, geodesic.Geodesic):
             return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
@@ -276,20 +279,16 @@ class SinkhornSolver(OTTJaxSolver):
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
-        super().__init__(jit=jit)
+        super().__init__(jit=jit, initializer_kwargs=initializer_kwargs)
         if rank > -1:
             kwargs.setdefault("gamma", 500)
             kwargs.setdefault("gamma_rescale", True)
             eps = kwargs.get("epsilon")
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
-            initializer = "rank2" if initializer is None else initializer
-            self._solver = sinkhorn_lr.LRSinkhorn(
-                rank=rank, epsilon=epsilon, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs
-            )
+            self._solver = sinkhorn_lr.LRSinkhorn(rank=rank, epsilon=epsilon, initializer=initializer, **kwargs)
         else:
-            initializer = "default" if initializer is None else initializer
-            self._solver = sinkhorn.Sinkhorn(initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
+            self._solver = sinkhorn.Sinkhorn(initializer=initializer, **kwargs)
 
     def _prepare(
         self,
@@ -390,35 +389,25 @@ class GWSolver(OTTJaxSolver):
         self,
         jit: bool = True,
         rank: int = -1,
-        initializer: QuadInitializer_t = None,
+        initializer: QuadInitializer_t | None = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
-        super().__init__(jit=jit)
+        super().__init__(jit=jit, initializer_kwargs=initializer_kwargs)
         if rank > -1:
             kwargs.setdefault("gamma", 10)
             kwargs.setdefault("gamma_rescale", True)
             eps = kwargs.get("epsilon")
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
-            initializer = "rank2" if initializer is None else initializer
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
                 initializer=initializer,
-                kwargs_init=initializer_kwargs,
                 **kwargs,
             )
         else:
             linear_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
-            if initializer is None:
-                initializer = quad_initializers.QuadraticInitializer()
-            if isinstance(initializer, str):
-                raise ValueError(
-                    "Expected `initializer` to be an instance of `ott.initializers.quadratic.BaseQuadraticInitializer`,"
-                    f"found `{initializer}`."
-                )
-            initializer = functools.partial(initializer, **initializer_kwargs)
             self._solver = gromov_wasserstein.GromovWasserstein(
                 linear_solver=linear_solver,
                 initializer=initializer,
