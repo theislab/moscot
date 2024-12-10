@@ -189,7 +189,7 @@ class TestMappingProblem:
         if geodesic_y:
             mp[("1", "ref")].set_graph_y(df_y, cost="geodesic")
             mp[("2", "ref")].set_graph_y(df_y, cost="geodesic")
-        mp = mp.solve(max_iterations=2, lse_mode=False)
+        mp = mp.solve(max_iterations=2)
 
         ta = mp[("1", "ref")].xy
         assert isinstance(ta, TaggedArray)
