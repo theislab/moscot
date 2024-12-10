@@ -20,14 +20,11 @@ ProblemKind_t = Literal["linear", "quadratic", "unknown"]
 Numeric_t = Union[int, float]  # type of `time_key` arguments
 Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata
 Str_Dict_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type for `cell_transition`
-SinkFullRankInit = Literal["default", "gaussian", "sorting"]
-LRInitializer_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
-
 
 SinkhornInitializer_t = Optional[Union[SinkhornInitializer, LRInitializer]]
 QuadInitializer_t = Optional[Union[BaseQuadraticInitializer]]
 
-Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
+Initializer_t = Union[SinkhornInitializer_t, QuadInitializer_t]
 ProblemStage_t = Literal["prepared", "solved"]
 Device_t = Union[Literal["cpu", "gpu", "tpu"], str]
 
