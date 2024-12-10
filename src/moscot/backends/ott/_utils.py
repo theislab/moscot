@@ -45,11 +45,10 @@ def sinkhorn_divergence(
         batch_size=batch_size,
         a=a,
         b=b,
-        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b},
         scale_cost=scale_cost,
         epsilon=epsilon,
         **kwargs,
-    )
+    )[1]
     xy_conv, xx_conv, *yy_conv = output.converged
 
     if not xy_conv:
