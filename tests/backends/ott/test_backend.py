@@ -350,10 +350,7 @@ class TestSolverOutput:
         b, ndim = (b, b.shape[1]) if batched else (b[:, 0], None)
         xx, yy = xy
         solver = solver_t()
-        additional_kwargs = {"alpha": 1.0} if xy is None else {}
-        out = solver(
-            a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, xy=(xx, yy), **additional_kwargs
-        )
+        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, xy=(xx, yy), alpha=0.5)
         p = out.pull(b, scale_by_marginals=False)
 
         assert isinstance(out, BaseDiscreteSolverOutput)
