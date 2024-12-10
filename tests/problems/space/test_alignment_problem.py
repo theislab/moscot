@@ -13,6 +13,7 @@ from anndata import AnnData
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import AlignmentProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
+from tests._utils import create_lr_initializer
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -24,7 +25,7 @@ from tests.problems.conftest import (
     pointcloud_args,
     quad_prob_args,
 )
-from tests._utils import create_lr_initializer
+
 # TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
