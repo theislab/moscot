@@ -288,7 +288,7 @@ class TestOTProblem:
         assert ta2.tag == Tag.GRAPH
         assert ta2.cost == "geodesic"
 
-        prob1 = prob1.solve(lse_mode=False, epsilon=10.0)
+        prob1 = prob1.solve(epsilon=10.0)
 
         prob2 = OTProblem(adata_x, adata_y)
         prob2 = prob2.prepare(
