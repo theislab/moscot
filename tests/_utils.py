@@ -6,6 +6,9 @@ from scipy.sparse import csr_matrix
 
 from anndata import AnnData
 
+from ott.initializers.linear import initializers_lr as lr_init_lib
+from ott.initializers.linear import initializers as init_lib
+
 from moscot._types import ArrayLike
 from moscot.base.output import MatrixSolverOutput
 from moscot.base.problems import AnalysisMixin, CompoundProblem, OTProblem
@@ -101,3 +104,39 @@ class Problem(CompoundProblem[Any, OTProblem]):
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
         return ()
+
+
+
+def create_lr_initializer(
+    initializer,
+    rank,
+    **kwargs,
+) -> lr_init_lib.LRInitializer:  # noqa: D102
+    if isinstance(initializer, lr_init_lib.LRInitializer):
+        return initializer
+    if initializer == "random":
+        return lr_init_lib.RandomInitializer(rank=rank, **kwargs)
+    if initializer == "rank2":
+        return lr_init_lib.Rank2Initializer(rank=rank, **kwargs)
+    if initializer == "k-means":
+        return lr_init_lib.KMeansInitializer(rank=rank, **kwargs)
+    if initializer == "generalized-k-means":
+        return lr_init_lib.GeneralizedKMeansInitializer(rank=rank, **kwargs)
+    raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")
+
+
+def create_fr_initializer(
+    initializer,
+    **kwargs,
+) -> init_lib.SinkhornInitializer:  # noqa: D102
+    if isinstance(initializer, init_lib.SinkhornInitializer):
+        return initializer
+    if initializer == "default":
+        return init_lib.DefaultInitializer(**kwargs)
+    if initializer == "gaussian":
+        return init_lib.GaussianInitializer(**kwargs)
+    if initializer == "sorting":
+        return init_lib.SortingInitializer(**kwargs)
+    if initializer == "subsample":
+        return init_lib.SubsampleInitializer(**kwargs)
+    raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")

@@ -26,43 +26,8 @@ from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
-from tests._utils import ATOL, RTOL, Geom_t
+from tests._utils import ATOL, RTOL, Geom_t, create_lr_initializer
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
-
-
-def create_lr_initializer(
-    initializer,
-    rank,
-    **kwargs,
-) -> lr_init_lib.LRInitializer:  # noqa: D102
-    if isinstance(initializer, lr_init_lib.LRInitializer):
-        return initializer
-    if initializer == "random":
-        return lr_init_lib.RandomInitializer(rank=rank, **kwargs)
-    if initializer == "rank2":
-        return lr_init_lib.Rank2Initializer(rank=rank, **kwargs)
-    if initializer == "k-means":
-        return lr_init_lib.KMeansInitializer(rank=rank, **kwargs)
-    if initializer == "generalized-k-means":
-        return lr_init_lib.GeneralizedKMeansInitializer(rank=rank, **kwargs)
-    raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")
-
-
-def create_fr_initializer(
-    initializer,
-    **kwargs,
-) -> init_lib.SinkhornInitializer:  # noqa: D102
-    if isinstance(initializer, init_lib.SinkhornInitializer):
-        return initializer
-    if initializer == "default":
-        return init_lib.DefaultInitializer(**kwargs)
-    if initializer == "gaussian":
-        return init_lib.GaussianInitializer(**kwargs)
-    if initializer == "sorting":
-        return init_lib.SortingInitializer(**kwargs)
-    if initializer == "subsample":
-        return init_lib.SubsampleInitializer(**kwargs)
-    raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")
 
 
 class TestSinkhorn:

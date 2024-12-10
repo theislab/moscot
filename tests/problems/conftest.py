@@ -9,6 +9,8 @@ from anndata import AnnData
 
 from tests._utils import Geom_t
 
+from ott.initializers.linear import initializers as init_lib
+from ott.initializers.linear import initializers_lr as lr_init_lib
 
 @pytest.fixture
 def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t) -> AnnData:
@@ -75,7 +77,7 @@ sinkhorn_args_1 = {
     "tau_a": 1.0,
     "tau_b": 1.0,
     "rank": 7,
-    "initializer": "rank2",
+    "initializer": lr_init_lib.RandomInitializer(rank=7),
     "initializer_kwargs": {},
     "jit": False,
     "threshold": 2e-3,
@@ -157,8 +159,7 @@ gw_args_2 = {
     "scale_cost": "max_cost",
     "rank": 7,
     "batch_size": 123,
-    "initializer": "rank2",
-    "initializer_kwargs": {},
+    "initializer": lr_init_lib.RandomInitializer(rank=7),
     "jit": False,
     "threshold": 2e-3,
     "min_iterations": 2,
@@ -193,7 +194,6 @@ gw_lr_solver_args = {
     "threshold": "threshold",
     "min_iterations": "min_iterations",
     "max_iterations": "max_iterations",
-    "initializer_kwargs": "kwargs_init",
     "initializer": "initializer",
 }
 
