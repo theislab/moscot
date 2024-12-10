@@ -288,7 +288,7 @@ class TestOTProblem:
         assert ta2.tag == Tag.GRAPH
         assert ta2.cost == "geodesic"
 
-        prob1 = prob1.solve(epsilon=10.0)
+        prob1 = prob1.solve(epsilon=10.0, alpha=1.0)
 
         prob2 = OTProblem(adata_x, adata_y)
         prob2 = prob2.prepare(
@@ -313,7 +313,7 @@ class TestOTProblem:
         assert ta2.tag == Tag.GRAPH
         assert ta2.cost == "geodesic"
 
-        prob2 = prob2.solve(epsilon=10.0)
+        prob2 = prob2.solve(epsilon=10.0, alpha=1.0)
 
         assert not np.allclose(prob1.solution._output.geom.cost_matrix, prob2.solution._output.geom.cost_matrix)
 
