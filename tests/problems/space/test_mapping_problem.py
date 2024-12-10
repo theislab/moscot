@@ -17,7 +17,7 @@ from anndata import AnnData
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import MappingProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
-from tests._utils import _adata_spatial_split
+from tests._utils import _adata_spatial_split, create_lr_initializer
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -96,7 +96,6 @@ class TestMappingProblem:
             assert prob.x.data_src.shape == (n_obs, x_n_var)
             assert prob.y.data_src.shape == (n_obs, y_n_var)
 
-    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
         [(1e-2, 0.9, -1, None), (2, 0.5, 10, "random"), (2, 0.5, 10, "rank2"), (2, 0.1, -1, None)],
@@ -115,6 +114,7 @@ class TestMappingProblem:
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         kwargs = {}
+        initializer = create_lr_initializer(initializer, rank) if initializer is not None else None
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":
