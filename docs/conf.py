@@ -72,6 +72,9 @@ nitpick_ignore = [
     ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
+    # ignore these classes until ott-jax adds them to their docs
+    ("py:class", "ott.initializers.quadratic.initializers.BaseQuadraticInitializer"),
+    ("py:class", "ott.initializers.linear.initializers.SinkhornInitializer"),
 ]
 # TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [

@@ -185,7 +185,6 @@ class TemporalProblem(  # type: ignore[misc]
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
-        inner_iterations: int = 10,
         min_iterations: Optional[int] = None,
         max_iterations: Optional[int] = None,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
@@ -233,9 +232,7 @@ class TemporalProblem(  # type: ignore[misc]
         lse_mode
             Whether to use `log-sum-exp (LSE)
             <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
-            computations for numerical stability.
-        inner_iterations
-            Compute the convergence criterion every ``inner_iterations``.
+            computations for numerical stability. Valid only for the :term:`linear problem`.
         min_iterations
             Minimum number of :term:`Sinkhorn` iterations.
         max_iterations
@@ -253,6 +250,8 @@ class TemporalProblem(  # type: ignore[misc]
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
+        if self.problem_kind == "linear":
+            kwargs["lse_mode"] = lse_mode
         return super().solve(  # type:ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
@@ -265,8 +264,6 @@ class TemporalProblem(  # type: ignore[misc]
             initializer_kwargs=initializer_kwargs,
             jit=jit,
             threshold=threshold,
-            lse_mode=lse_mode,
-            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             device=device,

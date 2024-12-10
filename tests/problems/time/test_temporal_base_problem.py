@@ -111,7 +111,7 @@ class TestBirthDeathProblem:
             b=True,
             marginal_kwargs={"proliferation_key": "proliferation"},
         )
-        prob = prob.solve(max_iterations=10)
+        prob = prob.solve(max_iterations=10, alpha=1.0)
         assert prob.delta == (t2 - t1)
 
         gr = prob.posterior_growth_rates

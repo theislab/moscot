@@ -45,11 +45,10 @@ def sinkhorn_divergence(
         batch_size=batch_size,
         a=a,
         b=b,
-        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b},
         scale_cost=scale_cost,
         epsilon=epsilon,
         **kwargs,
-    )
+    )[1]
     xy_conv, xx_conv, *yy_conv = output.converged
 
     if not xy_conv:
@@ -132,7 +131,7 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
         return jnp.reshape(arr, (-1, 1))
     if arr.ndim != 2:
         raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-    return arr
+    return arr.astype(jnp.float64)
 
 
 def convert_scipy_sparse(arr: Union[sp.spmatrix, jesp.BCOO]) -> jesp.BCOO:

@@ -88,15 +88,19 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ----------
     jit
         Whether to :func:`~jax.jit` the :attr:`solver`.
+    initializer_kwargs
+        Keyword arguments for the initializer.
     """
 
-    def __init__(self, jit: bool = True):
+    def __init__(self, jit: bool = True, initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({})):
         super().__init__()
         self._solver: Optional[OTTSolver_t] = None
         self._problem: Optional[OTTProblem_t] = None
         self._jit = jit
         self._a: Optional[jnp.ndarray] = None
         self._b: Optional[jnp.ndarray] = None
+
+        self.initializer_kwargs = initializer_kwargs
 
     def _create_geometry(
         self,
@@ -170,7 +174,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         **kwargs: Any,
     ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
-        out = solver(prob, **kwargs)
+        out = solver(prob, **self.initializer_kwargs, **kwargs)
         if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom, geodesic.Geodesic):
             return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
@@ -275,20 +279,16 @@ class SinkhornSolver(OTTJaxSolver):
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
-        super().__init__(jit=jit)
+        super().__init__(jit=jit, initializer_kwargs=initializer_kwargs)
         if rank > -1:
             kwargs.setdefault("gamma", 500)
             kwargs.setdefault("gamma_rescale", True)
             eps = kwargs.get("epsilon")
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
-            initializer = "rank2" if initializer is None else initializer
-            self._solver = sinkhorn_lr.LRSinkhorn(
-                rank=rank, epsilon=epsilon, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs
-            )
+            self._solver = sinkhorn_lr.LRSinkhorn(rank=rank, epsilon=epsilon, initializer=initializer, **kwargs)
         else:
-            initializer = "default" if initializer is None else initializer
-            self._solver = sinkhorn.Sinkhorn(initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
+            self._solver = sinkhorn.Sinkhorn(initializer=initializer, **kwargs)
 
     def _prepare(
         self,
@@ -389,33 +389,28 @@ class GWSolver(OTTJaxSolver):
         self,
         jit: bool = True,
         rank: int = -1,
-        initializer: QuadInitializer_t = None,
+        initializer: QuadInitializer_t | None = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
-        super().__init__(jit=jit)
+        super().__init__(jit=jit, initializer_kwargs=initializer_kwargs)
         if rank > -1:
             kwargs.setdefault("gamma", 10)
             kwargs.setdefault("gamma_rescale", True)
             eps = kwargs.get("epsilon")
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
-            initializer = "rank2" if initializer is None else initializer
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
                 initializer=initializer,
-                kwargs_init=initializer_kwargs,
                 **kwargs,
             )
         else:
-            linear_ot_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
-            initializer = None
+            linear_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
             self._solver = gromov_wasserstein.GromovWasserstein(
-                rank=rank,
-                linear_ot_solver=linear_ot_solver,
-                quad_initializer=initializer,
-                kwargs_init=initializer_kwargs,
+                linear_solver=linear_solver,
+                initializer=initializer,
                 **kwargs,
             )
 
@@ -423,6 +418,7 @@ class GWSolver(OTTJaxSolver):
         self,
         a: jnp.ndarray,
         b: jnp.ndarray,
+        alpha: float,
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -435,7 +431,6 @@ class GWSolver(OTTJaxSolver):
         cost_matrix_rank: Optional[int] = None,
         time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
-        alpha: float = 0.5,
         **kwargs: Any,
     ) -> quadratic_problem.QuadraticProblem:
         self._a = a
@@ -456,6 +451,11 @@ class GWSolver(OTTJaxSolver):
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
         geom_xx = self._create_geometry(x, t=time_scales_heat_kernel.x, is_linear_term=False, **geom_kwargs)
         geom_yy = self._create_geometry(y, t=time_scales_heat_kernel.y, is_linear_term=False, **geom_kwargs)
+        if alpha <= 0.0:
+            raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
+        if (alpha == 1.0 and xy is not None) or (alpha != 1.0 and xy is None):
+            raise ValueError(f"Expected `xy` to be `None` if `alpha` is not 1.0, found xy={xy}, alpha={alpha}.")
+
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
