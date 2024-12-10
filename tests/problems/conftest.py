@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from ott.initializers.linear import initializers_lr as lr_init_lib
+from ott.initializers.linear import initializers as init_lib
 from sklearn.metrics import pairwise_distances
 
 import anndata as ad
@@ -98,7 +99,7 @@ sinkhorn_args_2 = {  # no gamma/gamma_rescale as these are LR-specific
     "tau_b": 0.8,
     "rank": -1,
     "batch_size": 125,
-    "initializer": "gaussian",
+    "initializer": init_lib.GaussianInitializer(),
     "initializer_kwargs": {},
     "jit": True,
     "threshold": 3e-3,
@@ -244,7 +245,7 @@ sinkhorn_solver_args = {  # dictionary with key = moscot arg name, value = ott-j
     "min_iterations": "min_iterations",
     "max_iterations": "max_iterations",
     "initializer": "initializer",
-    "initializer_kwargs": "kwargs_init",
+    "initializer_kwargs": "initializer_kwargs",
 }
 
 lr_sinkhorn_solver_args = sinkhorn_solver_args.copy()

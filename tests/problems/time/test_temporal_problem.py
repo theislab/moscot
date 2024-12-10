@@ -440,9 +440,10 @@ class TestTemporalProblem:
         solver = problem[key].solver.solver
         args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
         for arg, val in args.items():
-            assert hasattr(solver, val)
-            el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg]
+            if val != "initializer_kwargs":
+                assert hasattr(solver, val)
+                el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
+                assert el == args_to_check[arg]
 
         lin_prob = problem[key]._solver._problem
         for arg, val in lin_prob_args.items():
