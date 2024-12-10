@@ -24,7 +24,7 @@ from tests.problems.conftest import (
     pointcloud_args,
     quad_prob_args,
 )
-
+from tests._utils import create_lr_initializer
 # TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
@@ -95,6 +95,7 @@ class TestAlignmentProblem:
         should_raise: bool,
     ):
         kwargs = {}
+        initializer = create_lr_initializer(initializer, rank=rank) if initializer is not None else None
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":
@@ -169,7 +170,7 @@ class TestAlignmentProblem:
 
         ap[("0", "1")].set_graph_xy(dfs[0], cost="geodesic")
         ap[("1", "2")].set_graph_xy(dfs[1], cost="geodesic")
-        ap = ap.solve(max_iterations=2, lse_mode=False)
+        ap = ap.solve(max_iterations=2)
 
         ta = ap[("0", "1")].xy
         assert isinstance(ta, TaggedArray)
@@ -197,7 +198,8 @@ class TestAlignmentProblem:
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
             assert hasattr(solver, val)
-            assert getattr(solver, val) == args_to_check[arg]
+            if arg != "initializer":
+                assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
