@@ -2,6 +2,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from ott.initializers.linear import initializers_lr as lr_init_lib
 from sklearn.metrics import pairwise_distances
 
 import anndata as ad
@@ -9,8 +10,6 @@ from anndata import AnnData
 
 from tests._utils import Geom_t
 
-from ott.initializers.linear import initializers as init_lib
-from ott.initializers.linear import initializers_lr as lr_init_lib
 
 @pytest.fixture
 def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t) -> AnnData:

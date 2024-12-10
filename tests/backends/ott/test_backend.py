@@ -9,7 +9,6 @@ from ott.geometry import costs
 from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
-from ott.initializers.linear import initializers as init_lib
 from ott.initializers.linear import initializers_lr as lr_init_lib
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic import quadratic_problem

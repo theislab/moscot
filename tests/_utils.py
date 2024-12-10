@@ -2,12 +2,11 @@ from typing import Any, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
+from ott.initializers.linear import initializers as init_lib
+from ott.initializers.linear import initializers_lr as lr_init_lib
 from scipy.sparse import csr_matrix
 
 from anndata import AnnData
-
-from ott.initializers.linear import initializers_lr as lr_init_lib
-from ott.initializers.linear import initializers as init_lib
 
 from moscot._types import ArrayLike
 from moscot.base.output import MatrixSolverOutput
@@ -104,7 +103,6 @@ class Problem(CompoundProblem[Any, OTProblem]):
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
         return ()
-
 
 
 def create_lr_initializer(

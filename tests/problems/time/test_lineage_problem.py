@@ -3,7 +3,6 @@ from typing import Any, Callable, List, Mapping
 import pytest
 
 import numpy as np
-from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
