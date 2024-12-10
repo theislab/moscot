@@ -4,7 +4,6 @@ import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 

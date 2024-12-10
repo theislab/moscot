@@ -6,7 +6,6 @@ import pytest
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler
 
 import scanpy as sc
 from anndata import AnnData

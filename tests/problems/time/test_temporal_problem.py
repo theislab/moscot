@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from ott.geometry import costs, epsilon_scheduler
+from ott.geometry import costs
 from scipy.sparse import csr_matrix
 
 import scanpy as sc

@@ -7,7 +7,6 @@ import pytest
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler
 from ott.solvers.linear.sinkhorn import SinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput
 
