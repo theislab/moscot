@@ -173,8 +173,7 @@ class TestTranslationProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             if arg == "epsilon":
                 eps_processed = getattr(geom, val)
-                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
-                assert eps_processed.target == args_to_check[arg], arg
+                assert eps_processed == args_to_check[arg], arg
             else:
                 assert getattr(geom, val) == args_to_check[arg], arg
                 assert el == args_to_check[arg]
