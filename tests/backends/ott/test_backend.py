@@ -20,7 +20,7 @@ from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
-from moscot.backends.ott._utils import alpha_to_fused_penalty, InitializerAdapter
+from moscot.backends.ott._utils import InitializerAdapter, alpha_to_fused_penalty
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
