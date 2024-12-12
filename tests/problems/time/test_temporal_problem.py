@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, Callable, List, Mapping, Optional
 
 import pytest
 
@@ -442,7 +442,10 @@ class TestTemporalProblem:
         for arg, val in args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg]
+            if arg == "initializer":
+                assert isinstance(el, Callable)
+            else:
+                assert el == args_to_check[arg]
 
         lin_prob = problem[key]._solver._problem
         for arg, val in lin_prob_args.items():
