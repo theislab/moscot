@@ -17,7 +17,7 @@ from anndata import AnnData
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import MappingProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
-from tests._utils import _adata_spatial_split, create_lr_initializer
+from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -114,7 +114,6 @@ class TestMappingProblem:
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         kwargs = {}
-        initializer = create_lr_initializer(initializer, rank) if initializer is not None else None
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":

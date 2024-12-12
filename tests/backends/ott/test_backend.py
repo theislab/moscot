@@ -24,7 +24,7 @@ from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
-from tests._utils import ATOL, RTOL, Geom_t, create_lr_initializer
+from tests._utils import ATOL, RTOL, Geom_t
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
 
 
@@ -52,7 +52,6 @@ class TestSinkhorn:
     def test_solver_rank(self, y: Geom_t, rank: Optional[int], initializer: str):
         eps = 1e-2
         default_gamma_lr_sinhorn = 500
-        initializer = create_lr_initializer(initializer, rank=rank)
         lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer, gamma=default_gamma_lr_sinhorn)
         problem = LinearProblem(PointCloud(y, epsilon=eps))
         gt = lr_sinkhorn(problem)

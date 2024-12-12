@@ -13,7 +13,6 @@ from anndata import AnnData
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import AlignmentProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
-from tests._utils import create_lr_initializer
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -96,7 +95,6 @@ class TestAlignmentProblem:
         should_raise: bool,
     ):
         kwargs = {}
-        initializer = create_lr_initializer(initializer, rank=rank) if initializer is not None else None
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":
