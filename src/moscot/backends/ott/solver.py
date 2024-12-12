@@ -36,11 +36,13 @@ from ott.solvers.utils import uniform_sampler
 from moscot._logging import logger
 from moscot._types import (
     ArrayLike,
+    LRInitializer_t,
     ProblemKind_t,
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
 from moscot.backends.ott._utils import (
+    InitializerAdapter,
     Loader,
     MultiLoader,
     _instantiate_geodesic_cost,
@@ -286,8 +288,12 @@ class SinkhornSolver(OTTJaxSolver):
             eps = kwargs.get("epsilon")
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
+            if isinstance(initializer, str):
+                initializer = InitializerAdapter.lr_from_str(initializer, rank=rank)
             self._solver = sinkhorn_lr.LRSinkhorn(rank=rank, epsilon=epsilon, initializer=initializer, **kwargs)
         else:
+            if isinstance(initializer, str):
+                initializer = InitializerAdapter.from_str(initializer)
             self._solver = sinkhorn.Sinkhorn(initializer=initializer, **kwargs)
 
     def _prepare(
@@ -389,7 +395,7 @@ class GWSolver(OTTJaxSolver):
         self,
         jit: bool = True,
         rank: int = -1,
-        initializer: QuadInitializer_t | None = None,
+        initializer: QuadInitializer_t | LRInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
@@ -401,6 +407,8 @@ class GWSolver(OTTJaxSolver):
             eps = kwargs.get("epsilon")
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
+            if isinstance(initializer, str):
+                initializer = InitializerAdapter.lr_from_str(initializer, rank=rank)
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
                 initializer=initializer,
@@ -408,6 +416,8 @@ class GWSolver(OTTJaxSolver):
             )
         else:
             linear_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
+            if isinstance(initializer, str):
+                raise ValueError("Expected `initializer` to be `None` or `ott.initializers.quadratic.initializers`.")
             self._solver = gromov_wasserstein.GromovWasserstein(
                 linear_solver=linear_solver,
                 initializer=initializer,

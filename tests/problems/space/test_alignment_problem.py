@@ -199,8 +199,7 @@ class TestAlignmentProblem:
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
             assert hasattr(solver, val)
-            if arg != "initializer":
-                assert getattr(solver, val) == args_to_check[arg]
+            assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args

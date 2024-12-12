@@ -8,6 +8,8 @@ import jax.numpy as jnp
 import numpy as np
 import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
+from ott.initializers.linear import initializers as init_lib
+from ott.initializers.linear import initializers_lr as lr_init_lib
 from ott.neural import datasets
 from ott.solvers import utils as solver_utils
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
@@ -19,6 +21,90 @@ Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bo
 
 
 __all__ = ["sinkhorn_divergence"]
+
+
+class InitializerAdapter:
+    """Adapter class for creating various OT solver initializers.
+
+    This class provides static methods to create and manage different types of
+    initializers used in optimal transport solvers, including low-rank, k-means,
+    and standard Sinkhorn initializers.
+    """
+
+    @staticmethod
+    def lr_from_str(
+        initializer: str,
+        rank: int,
+        **kwargs: Any,
+    ) -> lr_init_lib.LRInitializer:
+        """Create a low-rank initializer from a string specification.
+
+        Parameters
+        ----------
+        initializer : str
+            Either existing initializer instance or string specifier.
+        rank : int
+            Rank for the initialization.
+        **kwargs : Any
+            Additional keyword arguments for initializer creation.
+
+        Returns
+        -------
+        LRInitializer
+            Configured low-rank initializer.
+
+        Raises
+        ------
+        NotImplementedError
+            If requested initializer type is not implemented.
+        """
+        if isinstance(initializer, lr_init_lib.LRInitializer):
+            return initializer
+        if initializer == "k-means":
+            return lr_init_lib.KMeansInitializer(rank=rank, **kwargs)
+        if initializer == "generalized-k-means":
+            return lr_init_lib.GeneralizedKMeansInitializer(rank=rank, **kwargs)
+        if initializer == "random":
+            return lr_init_lib.RandomInitializer(rank=rank, **kwargs)
+        if initializer == "rank2":
+            return lr_init_lib.Rank2Initializer(rank=rank, **kwargs)
+        raise NotImplementedError(f"Initializer `{initializer}` is not implemented.")
+
+    @staticmethod
+    def from_str(
+        initializer: str,
+        **kwargs: Any,
+    ) -> init_lib.SinkhornInitializer:
+        """Create a Sinkhorn initializer from a string specification.
+
+        Parameters
+        ----------
+        initializer : str
+            String specifier for initializer type.
+        **kwargs : Any
+            Additional keyword arguments for initializer creation.
+
+        Returns
+        -------
+        SinkhornInitializer
+            Configured Sinkhorn initializer.
+
+        Raises
+        ------
+        NotImplementedError
+            If requested initializer type is not implemented.
+        """
+        if isinstance(initializer, init_lib.SinkhornInitializer):
+            return initializer
+        if initializer == "default":
+            return init_lib.DefaultInitializer(**kwargs)
+        if initializer == "gaussian":
+            return init_lib.GaussianInitializer(**kwargs)
+        if initializer == "sorting":
+            return init_lib.SortingInitializer(**kwargs)
+        if initializer == "subsample":
+            return init_lib.SubsampleInitializer(**kwargs)
+        raise NotImplementedError(f"Initializer `{initializer}` is not yet implemented.")
 
 
 def sinkhorn_divergence(
@@ -47,6 +133,8 @@ def sinkhorn_divergence(
         b=b,
         scale_cost=scale_cost,
         epsilon=epsilon,
+        tau_a=tau_a,
+        tau_b=tau_b,
         **kwargs,
     )[1]
     xy_conv, xx_conv, *yy_conv = output.converged

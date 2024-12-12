@@ -2,8 +2,6 @@ import pytest
 
 import numpy as np
 import pandas as pd
-from ott.initializers.linear import initializers as init_lib
-from ott.initializers.linear import initializers_lr as lr_init_lib
 from sklearn.metrics import pairwise_distances
 
 import anndata as ad
@@ -77,7 +75,7 @@ sinkhorn_args_1 = {
     "tau_a": 1.0,
     "tau_b": 1.0,
     "rank": 7,
-    "initializer": lr_init_lib.RandomInitializer(rank=7),
+    "initializer": "rank2",
     "initializer_kwargs": {},
     "jit": False,
     "threshold": 2e-3,
@@ -99,7 +97,7 @@ sinkhorn_args_2 = {  # no gamma/gamma_rescale as these are LR-specific
     "tau_b": 0.8,
     "rank": -1,
     "batch_size": 125,
-    "initializer": init_lib.GaussianInitializer(),
+    "initializer": "gaussian",
     "initializer_kwargs": {},
     "jit": True,
     "threshold": 3e-3,
@@ -159,7 +157,8 @@ gw_args_2 = {
     "scale_cost": "max_cost",
     "rank": 7,
     "batch_size": 123,
-    "initializer": lr_init_lib.RandomInitializer(rank=7),
+    "initializer": "rank2",
+    "initializer_kwargs": {},
     "jit": False,
     "threshold": 2e-3,
     "min_iterations": 2,

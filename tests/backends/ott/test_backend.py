@@ -9,7 +9,6 @@ from ott.geometry import costs
 from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
-from ott.initializers.linear import initializers_lr as lr_init_lib
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic import quadratic_problem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
@@ -156,8 +155,7 @@ class TestGW:
     def test_solver_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         if rank > -1:
-            initializer = lr_init_lib.RandomInitializer(rank=rank)
-            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer=initializer)(
+            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer="rank2")(
                 QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
             )
 
