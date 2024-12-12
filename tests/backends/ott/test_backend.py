@@ -20,7 +20,7 @@ from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
-from moscot.backends.ott._utils import alpha_to_fused_penalty
+from moscot.backends.ott._utils import alpha_to_fused_penalty, InitializerAdapter
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
@@ -52,6 +52,7 @@ class TestSinkhorn:
     def test_solver_rank(self, y: Geom_t, rank: Optional[int], initializer: str):
         eps = 1e-2
         default_gamma_lr_sinhorn = 500
+        initializer = InitializerAdapter.lr_from_str(initializer, rank=rank)
         lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer, gamma=default_gamma_lr_sinhorn)
         problem = LinearProblem(PointCloud(y, epsilon=eps))
         gt = lr_sinkhorn(problem)
@@ -154,7 +155,8 @@ class TestGW:
     def test_solver_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         if rank > -1:
-            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer="rank2")(
+            initializer = InitializerAdapter.lr_from_str("random", rank=rank)
+            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer=initializer)(
                 QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
             )
 
