@@ -42,7 +42,7 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.backends.ott._utils import (
-    InitializerAdapter,
+    InitializerResolver,
     Loader,
     MultiLoader,
     _instantiate_geodesic_cost,
@@ -289,11 +289,11 @@ class SinkhornSolver(OTTJaxSolver):
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
             if isinstance(initializer, str):
-                initializer = InitializerAdapter.lr_from_str(initializer, rank=rank)
+                initializer = InitializerResolver.lr_from_str(initializer, rank=rank)
             self._solver = sinkhorn_lr.LRSinkhorn(rank=rank, epsilon=epsilon, initializer=initializer, **kwargs)
         else:
             if isinstance(initializer, str):
-                initializer = InitializerAdapter.from_str(initializer)
+                initializer = InitializerResolver.from_str(initializer)
             self._solver = sinkhorn.Sinkhorn(initializer=initializer, **kwargs)
 
     def _prepare(
@@ -408,7 +408,7 @@ class GWSolver(OTTJaxSolver):
             if eps is not None and eps > 0.0:
                 logger.info(f"Found `epsilon`={eps}>0. We recommend setting `epsilon`=0 for the low-rank solver.")
             if isinstance(initializer, str):
-                initializer = InitializerAdapter.lr_from_str(initializer, rank=rank)
+                initializer = InitializerResolver.lr_from_str(initializer, rank=rank)
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
                 initializer=initializer,

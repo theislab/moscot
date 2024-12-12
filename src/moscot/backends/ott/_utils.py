@@ -23,8 +23,8 @@ Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bo
 __all__ = ["sinkhorn_divergence"]
 
 
-class InitializerAdapter:
-    """Adapter class for creating various OT solver initializers.
+class InitializerResolver:
+    """Class for creating various OT solver initializers.
 
     This class provides static methods to create and manage different types of
     initializers used in optimal transport solvers, including low-rank, k-means,
