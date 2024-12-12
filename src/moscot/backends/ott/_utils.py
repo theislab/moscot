@@ -133,8 +133,10 @@ def sinkhorn_divergence(
         b=b,
         scale_cost=scale_cost,
         epsilon=epsilon,
-        tau_a=tau_a,
-        tau_b=tau_b,
+        solve_kwargs={
+            "tau_a": tau_a,
+            "tau_b": tau_b,
+        },
         **kwargs,
     )[1]
     xy_conv, xx_conv, *yy_conv = output.converged
