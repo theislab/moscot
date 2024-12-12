@@ -1,4 +1,4 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 import pytest
 
@@ -162,7 +162,10 @@ class TestSinkhornProblem:
         for arg, val in args.items():
             assert hasattr(solver, val), val
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg], arg
+            if arg == "initializer":
+                assert isinstance(el, Callable)
+            else:
+                assert el == args_to_check[arg], arg
 
         lin_prob = problem[(0, 1)]._solver._problem
         for arg, val in lin_prob_args.items():
