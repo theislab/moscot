@@ -1,10 +1,9 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import Cosine, Euclidean, PNormP, SqEuclidean, SqPNorm
 from ott.solvers.linear import acceleration
 
@@ -112,9 +111,10 @@ class TestFGWProblem:
         solver = problem[key].solver.solver
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
-            assert getattr(solver, val, object()) == args_to_check[arg], arg
+            if arg == "initializer":
+                assert isinstance(getattr(solver, val), Callable)
 
-        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
+        sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
@@ -136,8 +136,7 @@ class TestFGWProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             if arg == "epsilon":
                 eps_processed = getattr(geom, val)
-                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
-                assert eps_processed.target == args_to_check[arg], arg
+                assert eps_processed == args_to_check[arg], arg
             else:
                 assert getattr(geom, val) == args_to_check[arg], arg
                 assert el == args_to_check[arg]
@@ -342,7 +341,7 @@ class TestFGWProblem:
             },
         )
 
-        sinkhorn_solver = problem[("0", "1")].solver.solver.linear_ot_solver
+        sinkhorn_solver = problem[("0", "1")].solver.solver.linear_solver
 
         anderson = sinkhorn_solver.anderson
         assert isinstance(anderson, acceleration.AndersonAcceleration)

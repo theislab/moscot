@@ -1,10 +1,9 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import Cosine, Euclidean, PNormP, SqEuclidean, SqPNorm
 from ott.solvers.linear import acceleration
 
@@ -161,9 +160,13 @@ class TestSinkhornProblem:
         solver = problem[(0, 1)].solver.solver
         args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
         for arg, val in args.items():
-            assert hasattr(solver, val), val
-            el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg], arg
+            if arg != "initializer_kwargs":
+                assert hasattr(solver, val), val
+                el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
+                if arg == "initializer":
+                    assert isinstance(el, Callable)
+                else:
+                    assert el == args_to_check[arg], arg
 
         lin_prob = problem[(0, 1)]._solver._problem
         for arg, val in lin_prob_args.items():
@@ -177,8 +180,7 @@ class TestSinkhornProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             if arg == "epsilon":
                 eps_processed = getattr(geom, val)
-                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
-                assert eps_processed.target == args_to_check[arg], arg
+                assert eps_processed == args_to_check[arg], arg
             else:
                 assert getattr(geom, val) == args_to_check[arg], arg
                 assert el == args_to_check[arg]

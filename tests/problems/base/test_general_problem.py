@@ -1,3 +1,4 @@
+import re
 from typing import Literal, Optional, Tuple
 
 import pytest
@@ -28,6 +29,29 @@ class TestOTProblem:
         ).solve(epsilon=5e-1, alpha=0.5)
 
         assert isinstance(prob.solution, BaseDiscreteSolverOutput)
+
+    @pytest.mark.parametrize(
+        ("kind", "rank"),
+        [
+            ("linear", -1),
+            ("linear", 5),
+            ("quadratic", -1),
+            ("quadratic", 5),
+        ],
+    )
+    def test_unrecognized_args(
+        self, adata_x: AnnData, adata_y: AnnData, kind: Literal["linear", "quadratic"], rank: int
+    ):
+        prob = OTProblem(adata_x, adata_y)
+        data = {
+            "xy": {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+        }
+        if "quadratic" in kind:
+            data["x"] = {"attr": "X"}
+            data["y"] = {"attr": "X"}
+
+        with pytest.raises(TypeError):
+            prob.prepare(**data).solve(epsilon=5e-1, rank=rank, dummy=42)
 
     @pytest.mark.fast
     def test_output(self, adata_x: AnnData, x: Geom_t):
@@ -264,7 +288,7 @@ class TestOTProblem:
         assert ta2.tag == Tag.GRAPH
         assert ta2.cost == "geodesic"
 
-        prob1 = prob1.solve(lse_mode=False, epsilon=10.0)
+        prob1 = prob1.solve(epsilon=10.0, alpha=1.0)
 
         prob2 = OTProblem(adata_x, adata_y)
         prob2 = prob2.prepare(
@@ -289,7 +313,7 @@ class TestOTProblem:
         assert ta2.tag == Tag.GRAPH
         assert ta2.cost == "geodesic"
 
-        prob2 = prob2.solve(lse_mode=False, epsilon=10.0)
+        prob2 = prob2.solve(epsilon=10.0, alpha=1.0)
 
         assert not np.allclose(prob1.solution._output.geom.cost_matrix, prob2.solution._output.geom.cost_matrix)
 
@@ -346,3 +370,35 @@ class TestOTProblem:
         assert pushed_0.shape == pushed_1.shape
         assert np.all(np.abs(pushed_0 - pushed_1).sum() > np.abs(pushed_2 - pushed_1).sum())
         assert np.all(np.abs(pushed_0 - pushed_2).sum() > np.abs(pushed_1 - pushed_2).sum())
+
+    @pytest.mark.parametrize(
+        ("attrs", "alpha", "raise_msg"),
+        [
+            ({"xy"}, 0.5, "type-error"),
+            ({"xy", "x", "y"}, 0, re.escape("Expected `alpha` to be in interval `(0, 1]`, found")),
+            ({"xy", "x", "y"}, 1.1, re.escape("Expected `alpha` to be in interval `(0, 1]`, found")),
+            ({"xy", "x", "y"}, 0.5, None),
+            ({"x", "y"}, 1.0, None),
+            ({"x", "y"}, 0.5, re.escape("Expected `xy` to be `None` if `alpha` is not 1.0, found")),
+        ],
+    )
+    def test_xy_alpha_raises(self, adata_x: AnnData, adata_y: AnnData, attrs, alpha, raise_msg):
+        prob = OTProblem(adata_x, adata_y)
+        data = {
+            "xy": {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"} if "xy" in attrs else {},
+            "x": {"attr": "X"} if "x" in attrs else {},
+            "y": {"attr": "X"} if "y" in attrs else {},
+        }
+        prob = prob.prepare(
+            **data,
+        )
+        if raise_msg is not None:
+            if raise_msg == "type-error":
+                with pytest.raises(TypeError):
+                    prob.solve(epsilon=5e-1, alpha=alpha)
+            else:
+                with pytest.raises(ValueError, match=raise_msg):
+                    prob.solve(epsilon=5e-1, alpha=alpha)
+        else:
+            prob.solve(epsilon=5e-1, alpha=alpha)
+            assert isinstance(prob.solution, BaseDiscreteSolverOutput)

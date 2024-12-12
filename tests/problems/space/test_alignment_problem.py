@@ -1,12 +1,11 @@
 from pathlib import Path
-from typing import Any, Literal, Mapping, Optional
+from typing import Any, Callable, Literal, Mapping, Optional
 
 import pytest
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler
 
 import scanpy as sc
 from anndata import AnnData
@@ -75,10 +74,16 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
-    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank", "initializer"),
-        [(1, 0.9, -1, None), (1, 0.5, 10, "random"), (1, 0.5, 10, "rank2"), (0.1, 0.1, -1, None)],
+        ("epsilon", "alpha", "rank", "initializer", "should_raise"),
+        [
+            (1, 0.9, -1, None, False),
+            (1, 0.5, 10, "random", False),
+            (1, 0.5, 10, "rank2", False),
+            (0.1, 0.1, -1, None, False),
+            (0.1, -0.1, -1, None, True),  # Invalid alpha
+            (0.1, 1.1, -1, None, True),  # Invalid alpha
+        ],
     )
     def test_solve_balanced(
         self,
@@ -87,6 +92,7 @@ class TestAlignmentProblem:
         alpha: float,
         rank: int,
         initializer: Optional[Literal["random", "rank2"]],
+        should_raise: bool,
     ):
         kwargs = {}
         if rank > -1:
@@ -95,22 +101,23 @@ class TestAlignmentProblem:
                 # kwargs["kwargs_init"] = {"key": 0}
                 # kwargs["key"] = 0
                 return  # TODO(@MUCDK) fix after refactoring
-        ap = (
-            AlignmentProblem(adata=adata_space_rotate)
-            .prepare(batch_key="batch")
-            .solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
-        )
-        for prob_key in ap:
-            assert ap[prob_key].solution.rank == rank
-            if initializer != "random":  # TODO: is this valid?
-                assert ap[prob_key].solution.converged
+        ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
+        if should_raise:
+            with pytest.raises(ValueError, match=r"Expected `alpha`"):
+                ap.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+        else:
+            ap = ap.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+            for prob_key in ap:
+                assert ap[prob_key].solution.rank == rank
+                if initializer != "random":  # TODO: is this valid?
+                    assert ap[prob_key].solution.converged
 
-        # TODO(michalk8): use np.testing
-        assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
-        assert np.all([sol.converged for sol in ap.solutions.values()])
-        np.testing.assert_array_equal(
-            [np.all(np.isfinite(sol.transport_matrix)) for sol in ap.solutions.values()], True
-        )
+            # TODO(michalk8): use np.testing
+            assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
+            assert np.all([sol.converged for sol in ap.solutions.values()])
+            np.testing.assert_array_equal(
+                [np.all(np.isfinite(sol.transport_matrix)) for sol in ap.solutions.values()], True
+            )
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):
         tau_a, tau_b = [0.8, 1]
@@ -162,7 +169,7 @@ class TestAlignmentProblem:
 
         ap[("0", "1")].set_graph_xy(dfs[0], cost="geodesic")
         ap[("1", "2")].set_graph_xy(dfs[1], cost="geodesic")
-        ap = ap.solve(max_iterations=2, lse_mode=False)
+        ap = ap.solve(max_iterations=2)
 
         ta = ap[("0", "1")].xy
         assert isinstance(ta, TaggedArray)
@@ -190,9 +197,12 @@ class TestAlignmentProblem:
         args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
         for arg, val in args.items():
             assert hasattr(solver, val)
-            assert getattr(solver, val) == args_to_check[arg]
+            if arg == "initializer":
+                assert isinstance(getattr(solver, val), Callable)
+            else:
+                assert getattr(solver, val) == args_to_check[arg]
 
-        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
+        sinkhorn_solver = solver.linear_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
@@ -216,8 +226,7 @@ class TestAlignmentProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             if arg == "epsilon":
                 eps_processed = getattr(geom, val)
-                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
-                assert eps_processed.target == args_to_check[arg], arg
+                assert eps_processed == args_to_check[arg], arg
             else:
                 assert getattr(geom, val) == args_to_check[arg], arg
                 assert el == args_to_check[arg]

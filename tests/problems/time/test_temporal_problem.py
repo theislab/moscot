@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, Callable, List, Mapping, Optional
 
 import pytest
 
@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from ott.geometry import costs, epsilon_scheduler
+from ott.geometry import costs
 from scipy.sparse import csr_matrix
 
 import scanpy as sc
@@ -440,9 +440,13 @@ class TestTemporalProblem:
         solver = problem[key].solver.solver
         args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
         for arg, val in args.items():
-            assert hasattr(solver, val)
-            el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg]
+            if arg != "initializer_kwargs":
+                assert hasattr(solver, val)
+                el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
+                if arg == "initializer":
+                    assert isinstance(el, Callable)
+                else:
+                    assert el == args_to_check[arg]
 
         lin_prob = problem[key]._solver._problem
         for arg, val in lin_prob_args.items():
@@ -456,8 +460,7 @@ class TestTemporalProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             if arg == "epsilon":
                 eps_processed = getattr(geom, val)
-                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
-                assert eps_processed.target == args_to_check[arg], arg
+                assert eps_processed == args_to_check[arg], arg
             else:
                 assert getattr(geom, val) == args_to_check[arg], arg
                 assert el == args_to_check[arg]

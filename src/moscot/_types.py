@@ -2,6 +2,9 @@ import os
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
+from ott.initializers.linear.initializers import SinkhornInitializer
+from ott.initializers.linear.initializers_lr import LRInitializer
+from ott.initializers.quadratic.initializers import BaseQuadraticInitializer
 
 # TODO(michalk8): polish
 
@@ -17,13 +20,14 @@ ProblemKind_t = Literal["linear", "quadratic", "unknown"]
 Numeric_t = Union[int, float]  # type of `time_key` arguments
 Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata
 Str_Dict_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type for `cell_transition`
-SinkFullRankInit = Literal["default", "gaussian", "sorting"]
-LRInitializer_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
+SinkhornInitializerTag_t = Literal["default", "gaussian", "sorting"]
+LRInitializerTag_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
 
-SinkhornInitializer_t = Optional[Union[SinkFullRankInit, LRInitializer_t]]
-QuadInitializer_t = Optional[LRInitializer_t]
+LRInitializer_t = Optional[Union[LRInitializer, LRInitializerTag_t]]
+SinkhornInitializer_t = Optional[Union[SinkhornInitializer, SinkhornInitializerTag_t]]
+QuadInitializer_t = Optional[Union[BaseQuadraticInitializer]]
 
-Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
+Initializer_t = Union[SinkhornInitializer_t, QuadInitializer_t, LRInitializer_t]
 ProblemStage_t = Literal["prepared", "solved"]
 Device_t = Union[Literal["cpu", "gpu", "tpu"], str]
 

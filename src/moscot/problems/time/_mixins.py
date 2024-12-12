@@ -518,7 +518,7 @@ class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
             if src == source:
                 source_data = self.problems[src, tgt].xy.data_src
                 if only_start:
-                    return source_data, self.problems[src, tgt].adata_src
+                    return source_data.astype(np.float64), self.problems[src, tgt].adata_src
                 # TODO(michalk8): posterior marginals
                 attr = "posterior_growth_rates" if posterior_marginals else "prior_growth_rates"
                 growth_rates_source = getattr(self.problems[src, tgt], attr)
@@ -540,12 +540,12 @@ class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
             raise ValueError(f"No data found for `{target}` time point.")
 
         return (
-            source_data,
-            growth_rates_source,
-            intermediate_data,
+            source_data.astype(np.float64) if source_data is not None else None,
+            growth_rates_source.astype(np.float64) if growth_rates_source is not None else None,
+            intermediate_data.astype(np.float64) if intermediate_data is not None else None,
             intermediate_adata,
-            target_data,
-        )
+            target_data.astype(np.float64) if target_data is not None else None,
+        )  # type: ignore[return-value]
 
     def compute_interpolated_distance(
         self,
