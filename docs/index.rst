@@ -4,21 +4,44 @@ Moscot - Multiomics Single-cell Optimal Transport
 =================================================
 .. module:: moscot
 
-:mod:`moscot` is a framework for optimal transport applications in single cell genomics.
-
-.. image:: _static/img/light_mode_logo.png
-    :width: 600px
+.. image:: _static/img/light_mode_concept.png
+    :width: 800px
     :align: center
     :class: only-light
 
-.. image:: _static/img/dark_mode_logo.png
-    :width: 600px
+.. image:: _static/img/dark_mode_concept.png
+    :width: 800px
     :align: center
     :class: only-dark
 
-If you find a model useful for your research, please consider citing the ``moscot`` manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] as
+:mod:`moscot` is a framework for Optimal Transport (OT) applications in
+single-cell genomics. It scales to large datsets and can be used for a
+variety of applications across different modalities.
+
+Key applications
+----------------
+- :doc:`Trajectory inference <notebooks/tutorials/200_temporal_problem>`
+  (incorporating :doc:`spatial <notebooks/tutorials/500_spatiotemporal>`
+  and :doc:`lineage <notebooks/tutorials/100_lineage>` information).
+- :doc:`Mapping <notebooks/tutorials/400_spatial_mapping>` cells to their spatial organisation.
+- :doc:`Aligning <notebooks/tutorials/300_spatial_alignment>` spatial transcriptomics slides.
+- :doc:`Translating <notebooks/tutorials/600_tutorial_translation>` modalities.
+- ... and more, check out the :doc:`user guide <user_guide>` for more information.
+
+Getting started
+----------------
+- Read the :doc:`user guide <user_guide>` to get a high-level overview of :mod:`moscot`.
+- Take a look at our :doc:`tutorials <notebooks/tutorials/index>` to learn how to use :mod:`moscot` for data analysis.
+- For more technical examples and specific use cases, check out the :doc:`examples <notebooks/examples/index>` section.
+- To see :mod:`moscot` in action, read our `Klein et al., 2023`_ manuscript.
+
+Citing moscot
+-------------
+If you find a model useful for your research, please consider citing the `Klein et al., 2023`_ manuscript as
 well as the publication introducing the model, which can be found in the corresponding documentation.
 
+Important resources
+-------------------
 .. grid:: 3
     :gutter: 1
 
@@ -54,7 +77,7 @@ well as the publication introducing the model, which can be found in the corresp
 
     .. grid-item-card:: Manuscript
 
-        Please have a look at our manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] to learn more.
+        Please have a look at `Klein et al., 2023`_ to learn more.
 
 .. toctree::
     :maxdepth: 2
@@ -93,3 +116,5 @@ well as the publication introducing the model, which can be found in the corresp
 .. |Downloads| image:: https://static.pepy.tech/badge/moscot
     :target: https://pepy.tech/project/moscot
     :alt: Downloads
+
+.. _Klein et al., 2023: https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2
