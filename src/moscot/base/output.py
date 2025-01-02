@@ -353,7 +353,7 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
         return self._transport_matrix
 
     @property
-    def shape(self) -> tuple[int, int]:  # noqa: D102
+    def shape(self) -> tuple[int, ...]:  # noqa: D102
         return self.transport_matrix.shape
 
     def to(  # noqa: D102
