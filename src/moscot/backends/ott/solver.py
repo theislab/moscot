@@ -216,7 +216,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 problem_shape = x.shape if problem_shape is None else problem_shape
                 return _instantiate_geodesic_cost(
                     arr=arr,
-                    problem_shape=problem_shape,
+                    problem_shape=problem_shape,  # type: ignore[arg-type]
                     t=t,
                     is_linear_term=is_linear_term,
                     epsilon=epsilon,
