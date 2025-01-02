@@ -4,7 +4,7 @@ Optimal transport ({term}`OT`) is a general problem in mathematics that has powe
 The problem that OT aims to solve is minimizing some measure of distance $L$ between two distributions, e.g. sets of cells.
 The solution is encoded using a {term}`transport matrix` $\mathbf{P} \in \mathbb{R}_{+}^{n \times m}$ where $\mathbf{P}_{i,j}$ describes the amount of mass that is transported from data point $x_i$ in row $i$ to data point $y_j$ in column $j$.
 
-The regularized OT problem reads: 
+The regularized {term}`linear OT` problem reads: 
 
 ```math
 \begin{align*}

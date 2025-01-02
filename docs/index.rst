@@ -61,6 +61,7 @@ well as the publication introducing the model, which can be found in the corresp
     :hidden:
 
     installation
+    ot_background
     user_guide
     user
     developer
