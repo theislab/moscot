@@ -55,7 +55,7 @@ repos:
     rev: v6.2.4
     hooks:
       - id: rstcheck
-        additional_dependencies: [tomli]
+        additional_dependencies: [toml]
         args: [--config=pyproject.toml]
   - repo: https://github.com/PyCQA/doc8
     rev: v1.1.2
