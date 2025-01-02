@@ -4,7 +4,7 @@ Optimal transport ({term}`OT`) is a general problem in mathematics that has powe
 The problem that OT aims to solve is minimizing some measure of distance $L$ between two distributions, e.g. sets of cells.
 The solution is encoded using a {term}`transport matrix` $\mathbf{P} \in \mathbb{R}_{+}^{n \times m}$ where $\mathbf{P}_{i,j}$ describes the amount of mass that is transported from data point $x_i$ in row $i$ to data point $y_j$ in column $j$.
 
-The regularized OT problem reads: 
+The regularized OT problem reads:
 
 ```math
 \begin{align*}
@@ -16,7 +16,7 @@ where $\varepsilon$ is the {term}`entropic regularization`, and $\mathbf{H(P) \o
 
 ## Gromov-Wasserstein (GW)
 
-When the data points (e.g. cells) from source and target distributions lie in different metric spaces, 
+When the data points (e.g. cells) from source and target distributions lie in different metric spaces,
 we only assume that two matrices $\mathbf{D \in \mathbb{R}^\mathnormal{n \times n}}$ and $\mathbf{D' \in \mathbb{R}^\mathnormal{m \times m}}$
 quantify similarity relationships between data points within the respective distribution.\
 
@@ -75,10 +75,12 @@ and $\alpha \in [0,1]$ is the tradeoff between the feature and the structure cos
 In cases that require allowing to ignore any outliers or skip points that don’t have a satisfactory mapping,
 we can add a penalty for the amount of mass variation using some divergence $D_{\varphi}$
 and get the minimization of an OT distance between approximate measures
- ```math
+
+```math
 \begin{align*}
-    \mathbf{L_C^{\tau}(a,b) =  \min_{\tilde{a},\tilde{b}}  L_C(a,b) + \tau_1 D_{\varphi}(a,\tilde{a}) + \tau_2 D_{\varphi}(b,\tilde{b})} \\
-    \mathbf{= \min_{P\in \mathbb{R}_+^\mathnormal{n\times m}} \left\langle C,P \right\rangle + \tau_1 D_{\varphi}(P\mathbb{1}_\mathnormal{m}|a) + \tau_2 D_{\varphi}(P^\top\mathbb{1}_\mathnormal{m}|b)}
+   \mathbf{L_C^{\tau}(a,b) =  \min_{\tilde{a},\tilde{b}}  L_C(a,b) + \tau_1 D_{\varphi}(a,\tilde{a}) + \tau_2 D_{\varphi}(b,\tilde{b})} \\
+   \mathbf{= \min_{P\in \mathbb{R}_+^\mathnormal{n\times m}} \left\langle C,P \right\rangle + \tau_1 D_{\varphi}(P\mathbb{1}_\mathnormal{m}|a) + \tau_2 D_{\varphi}(P^\top\mathbb{1}_\mathnormal{m}|b)}
 \end{align*}
 ```
+
 where $(\tau_1, \tau_2)$ controls how much mass variations are penalized as opposed to transportation of the mass.
