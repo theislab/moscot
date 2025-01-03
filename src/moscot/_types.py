@@ -11,7 +11,7 @@ from ott.initializers.quadratic.initializers import BaseQuadraticInitializer
 try:
     from numpy.typing import DTypeLike, NDArray
 
-    ArrayLike = NDArray[np.float64]
+    ArrayLike = NDArray[np.floating]
 except (ImportError, TypeError):
     ArrayLike = np.ndarray  # type: ignore[misc]
     DTypeLike = np.dtype  # type: ignore[misc]
