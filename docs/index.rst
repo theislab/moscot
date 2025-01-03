@@ -84,6 +84,7 @@ Important resources
     :hidden:
 
     installation
+    ot_background
     user_guide
     user
     developer
