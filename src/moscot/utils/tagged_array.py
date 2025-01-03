@@ -161,7 +161,7 @@ class TaggedArray:
         return cls(data_src=data, tag=tag, cost=cost_fn)
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Tuple[int, ...]:
         """Shape of the cost matrix."""
         if self.tag == Tag.POINT_CLOUD:
             x, y = self.data_src, (self.data_src if self.data_tgt is None else self.data_tgt)
