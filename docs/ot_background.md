@@ -1,12 +1,12 @@
 # Optimal Transport (OT) in a nutshell
 
 Optimal transport ({term}`OT`) is a general problem in mathematics that has powerful applications in single-cell genomics analysis, especially in the context of spatial and multi-modal data.\
-The problem that OT aims to solve is minimizing some measure of distance $L$ between two distributions, e.g. sets of cells.
+The problem that OT aims to solve is minimizing some measure of distance $L$ between two distributions of data points, e.g. sets of cells.
 The solution is encoded using a {term}`transport matrix` $\mathbf{P} \in \mathbb{R}_{+}^{n \times m}$ where $\mathbf{P}_{i,j}$ describes the amount of mass that is transported from data point $x_i$ in row $i$ to data point $y_j$ in column $j$.
 
-The regularized {term}`linear OT` problem reads:
+The regularized {term}`linear problem` reads:
 
-```math
+```{math}
 \begin{align*}
     \mathbf{L_C^{\varepsilon}(a,b) \overset{\mathrm{def.}}{=} \min_{P\in U(a,b)} \left\langle P, C \right\rangle - \varepsilon H(P).}
 \end{align*}
@@ -30,7 +30,7 @@ Gromov-Wasserstein approach to comparing two metric measure spaces. Figure credi
 
 The {term}`Gromov-Wasserstein` problem reads
 
-```math
+```{math}
 \begin{align*}
     \mathrm{GW}\mathbf{((a,D), (b,D'))^\mathrm{2} \overset{\mathrm{def.}}{=} \min_{P \in U(a,b)} \mathcal{E}_{D,D'}(P)}
 \end{align*}
@@ -57,7 +57,7 @@ Figure adapted from {cite}`vayer:20`.
 
 The FGW problem is defined as
 
-```math
+```{math}
 \begin{align*}
     \mathrm{FGW}\mathbf{(a,b,D,D',M) \overset{\mathrm{def.}}{=} \min_{P \in U(a,b)} E_{D,D',M}(P)}
 \end{align*}
@@ -76,7 +76,7 @@ In cases that require allowing to ignore any outliers or skip points that don’
 we can add a penalty for the amount of mass variation using some divergence $D_{\varphi}$
 and get the minimization of an OT distance between approximate measures
 
-```math
+```{math}
 \begin{align*}
    \mathbf{L_C^{\tau}(a,b) =  \min_{\tilde{a},\tilde{b}}  L_C(a,b) + \tau_1 D_{\varphi}(a,\tilde{a}) + \tau_2 D_{\varphi}(b,\tilde{b})} \\
    \mathbf{= \min_{P\in \mathbb{R}_+^\mathnormal{n\times m}} \left\langle C,P \right\rangle + \tau_1 D_{\varphi}(P\mathbb{1}_\mathnormal{m}|a) + \tau_2 D_{\varphi}(P^\top\mathbb{1}_\mathnormal{m}|b)}
