@@ -84,10 +84,10 @@ Important resources
     :hidden:
 
     installation
-    ot_background
     user_guide
     user
     developer
+    ot_background
     contributing
     notebooks/tutorials/index
     notebooks/examples/index

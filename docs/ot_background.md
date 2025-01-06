@@ -18,14 +18,14 @@ where $\varepsilon$ is the {term}`entropic regularization`, and $\mathbf{H(P) \o
 
 When the data points (e.g. cells) from source and target distributions lie in different metric spaces,
 we only assume that two matrices $\mathbf{D \in \mathbb{R}^\mathnormal{n \times n}}$ and $\mathbf{D' \in \mathbb{R}^\mathnormal{m \times m}}$
-quantify similarity relationships between data points within the respective distribution.\
+quantify similarity relationships between data points within the respective distribution.
 
 :::{figure} figures/GWapproach.jpeg
 :align: center
 :alt: Gromov-Wasserstein approach.
 :class: img-fluid
 
-Gromov-Wasserstein approach to comparing two metric measure spaces. Figure credit: {cite}`peyre:19`.
+Gromov-Wasserstein approach to comparing two metric measure spaces. Figure from {cite}`peyre:19`.
 :::
 
 The {term}`Gromov-Wasserstein` problem reads
@@ -33,9 +33,7 @@ The {term}`Gromov-Wasserstein` problem reads
 ```{math}
 \begin{align*}
     \mathrm{GW}\mathbf{((a,D), (b,D'))^\mathrm{2} \overset{\mathrm{def.}}{=} \min_{P \in U(a,b)} \mathcal{E}_{D,D'}(P)}
-\end{align*}
 \\
-\begin{align*}
     \textrm{where} \quad \mathbf{\mathcal{E}_{D,D'}(P) \overset{\mathrm{def.}}{=} \sum_{\mathnormal{i,j,i',j'}} \left| D_{\mathnormal{i,i'}} - D'_{\mathnormal{j,j'}} \right|^\mathrm{2} P_{\mathnormal{i,i'}}P_{\mathnormal{j,j'}}}.
 \end{align*}
 ```
@@ -60,9 +58,7 @@ The FGW problem is defined as
 ```{math}
 \begin{align*}
     \mathrm{FGW}\mathbf{(a,b,D,D',M) \overset{\mathrm{def.}}{=} \min_{P \in U(a,b)} E_{D,D',M}(P)}
-\end{align*}
 \\
-\begin{align*}
     \textrm{where} \quad \mathbf{E_{D,D',M}(P) \overset{\mathrm{def.}}{=} \sum_{\mathnormal{i,j,i',j'}} \left( (1-\alpha)M_\mathnormal{i,j} + \alpha  \left| D_{\mathnormal{i,i'}} - D'_{\mathnormal{j,j'}} \right|^\mathrm{2} \right) P_{\mathnormal{i,i'}}P_{\mathnormal{j,j'}}}
 \end{align*}
 ```
