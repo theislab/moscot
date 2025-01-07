@@ -1,30 +1,20 @@
 import types
 from types import MappingProxyType
-from typing import Any, Dict, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
-from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
     CostKwargs_t,
     OttCostFn_t,
-    OttCostFnMap_t,
     Policy_t,
-    ProblemStage_t,
-    QuadInitializer_t,
-    ScaleCost_t,
-    SinkhornInitializer_t,
 )
-from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
-from moscot.base.problems.problem import CondOTProblem, OTProblem
+from moscot.base.problems.problem import CondOTProblem
 from moscot.problems._utils import (
     handle_conditional_attr,
-    handle_cost,
     handle_cost_tmp,
-    handle_joint_attr,
     handle_joint_attr_tmp,
 )
-from moscot.problems.generic._mixins import GenericAnalysisMixin
 
 __all__ = ["GENOTLinProblem"]
 
