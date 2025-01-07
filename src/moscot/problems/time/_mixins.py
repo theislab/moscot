@@ -545,7 +545,7 @@ class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
             intermediate_data.astype(np.float64) if intermediate_data is not None else None,
             intermediate_adata,
             target_data.astype(np.float64) if target_data is not None else None,
-        )  # type: ignore[return-value]
+        )
 
     def compute_interpolated_distance(
         self,

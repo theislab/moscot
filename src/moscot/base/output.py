@@ -11,7 +11,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 
 from moscot._logging import logger
-from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
+from moscot._types import ArrayLike, Device_t, DTypeLike
 
 __all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
@@ -20,12 +20,12 @@ class BaseSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
 
     @abc.abstractmethod
-    def pull(self, x: ArrayLike, **kwargs) -> ArrayLike:
-        """Pull the solution based on a condition."""
-
-    @abc.abstractmethod
     def push(self, x: ArrayLike, **kwargs) -> ArrayLike:
         """Push the solution based on a condition."""
+
+    @abc.abstractmethod
+    def _apply_forward(self, x: ArrayLike) -> ArrayLike:
+        """Apply the transport matrix in the forward direction."""
 
     @property
     @abc.abstractmethod
@@ -348,6 +348,9 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
             return self.transport_matrix.T @ x
         return self.transport_matrix @ x
 
+    def _apply_forward(self, x: ArrayLike) -> ArrayLike:
+        return self._apply(x, forward=True)
+
     @property
     def transport_matrix(self) -> ArrayLike:  # noqa: D102
         return self._transport_matrix
@@ -393,7 +396,7 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
         return jnp.ones((n,), dtype=self.transport_matrix.dtype)
 
 
-class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
+class BaseNeuralOutput(BaseSolverOutput, abc.ABC):
     """Base class for output of."""
 
     @abstractmethod
@@ -402,7 +405,6 @@ class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
         source: Optional[ArrayLike] = None,
         target: Optional[ArrayLike] = None,
         condition: Optional[ArrayLike] = None,
-        forward: bool = True,
         save_transport_matrix: bool = False,
         batch_size: int = 1024,
         k: int = 30,
@@ -410,19 +412,3 @@ class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
         seed: int = 42,
     ) -> sp.csr_matrix:
         """Project transport matrix."""
-        pass
-
-    @property
-    def transport_matrix(self):  # noqa: D102
-        raise NotImplementedError("Neural output does not require a transport matrix.")
-
-    @property
-    def cost(self):  # noqa: D102
-        raise NotImplementedError("Neural output does not implement a cost property.")
-
-    @property
-    def potentials(self):  # noqa: D102
-        raise NotImplementedError("Neural output does not need to implement a potentials property.")
-
-    def _ones(self, n: int):  # noqa: D102
-        raise NotImplementedError("Neural output does not need to implement a `_ones` property.")

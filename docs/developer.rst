@@ -12,8 +12,6 @@ Backends
     backends.ott.GWSolver
     backends.ott.OTTOutput
     backends.ott.GraphOTTOutput
-    backends.ott.GENOTLinSolver
-    backends.ott.output.OTTNeuralOutput
     backends.utils.get_solver
     backends.utils.get_available_backends
 
