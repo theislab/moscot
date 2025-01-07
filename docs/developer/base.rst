@@ -20,5 +20,3 @@ Base
     solver.OTSolver
     output.BaseDiscreteSolverOutput
     output.MatrixSolverOutput
-
-
