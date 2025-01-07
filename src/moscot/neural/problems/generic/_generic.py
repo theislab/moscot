@@ -2,13 +2,8 @@ import types
 from types import MappingProxyType
 from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
-
 from moscot import _constants
-from moscot._types import (
-    CostKwargs_t,
-    OttCostFn_t,
-    Policy_t,
-)
+from moscot._types import CostKwargs_t, OttCostFn_t, Policy_t
 from moscot.base.problems.problem import CondOTProblem
 from moscot.problems._utils import (
     handle_conditional_attr,
