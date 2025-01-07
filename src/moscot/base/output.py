@@ -32,6 +32,11 @@ class BaseSolverOutput(abc.ABC):
     def shape(self) -> tuple[int, int]:
         """Shape of the problem."""
 
+    @property
+    @abc.abstractmethod
+    def converged(self) -> bool:
+        """Whether the solver converged."""
+
     @abc.abstractmethod
     def to(self: BaseSolverOutput, device: Optional[Device_t] = None) -> BaseSolverOutput:
         """Transfer self to another compute device.
@@ -73,11 +78,6 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
     @abc.abstractmethod
     def cost(self) -> float:
         """Regularized :term:`OT` cost."""
-
-    @property
-    @abc.abstractmethod
-    def converged(self) -> bool:
-        """Whether the solver converged."""
 
     @property
     @abc.abstractmethod

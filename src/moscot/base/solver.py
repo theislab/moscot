@@ -16,13 +16,13 @@ from typing import (
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
-from moscot.base.output import BaseDiscreteSolverOutput
+from moscot.base.output import BaseSolverOutput
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
 
 
-O = TypeVar("O", bound=BaseDiscreteSolverOutput)
+O = TypeVar("O", bound=BaseSolverOutput)
 
 
 class TaggedArrayData(NamedTuple):  # noqa: D101

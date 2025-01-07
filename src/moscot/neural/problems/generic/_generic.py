@@ -4,7 +4,7 @@ from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
 from moscot import _constants
 from moscot._types import CostKwargs_t, OttCostFn_t, Policy_t
-from moscot.base.problems.problem import CondOTProblem
+from moscot.neural.base.problems.problem import NeuralOTProblem
 from moscot.problems._utils import (
     handle_conditional_attr,
     handle_cost_tmp,
@@ -14,7 +14,7 @@ from moscot.problems._utils import (
 __all__ = ["GENOTLinProblem"]
 
 
-class GENOTLinProblem(CondOTProblem):
+class GENOTLinProblem(NeuralOTProblem):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
 
     def prepare(
@@ -70,8 +70,8 @@ class GENOTLinProblem(CondOTProblem):
         )
 
     @property
-    def _base_problem_type(self) -> Type[CondOTProblem]:
-        return CondOTProblem
+    def _base_problem_type(self) -> Type[NeuralOTProblem]:
+        return NeuralOTProblem
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:

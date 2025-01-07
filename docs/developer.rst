@@ -44,7 +44,6 @@ Problems
     problems.BaseCompoundProblem
     problems.CompoundProblem
     cost.BaseCost
-    problems.CondOTProblem
 
 Mixins
 ^^^^^^
