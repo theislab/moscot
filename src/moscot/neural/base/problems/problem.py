@@ -12,7 +12,6 @@ from typing import (
     Union,
 )
 
-
 import numpy as np
 import pandas as pd
 
@@ -20,13 +19,9 @@ from anndata import AnnData
 
 from moscot import backends
 from moscot._types import ArrayLike, Device_t
-from moscot.base.output import (
-    BaseNeuralOutput,
-)
-from moscot.base.problems._utils import (
-    wrap_prepare,
-    wrap_solve,
-)
+from moscot.base.output import BaseNeuralOutput
+from moscot.base.problems._utils import wrap_prepare, wrap_solve
+from moscot.base.problems.problem import BaseProblem
 from moscot.base.solver import OTSolver
 from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     ExplicitPolicy,
@@ -35,12 +30,7 @@ from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     SubsetPolicy,
     create_policy,
 )
-from moscot.utils.tagged_array import (
-    DistributionCollection,
-    DistributionContainer,
-)
-
-from moscot.base.problems.problem import BaseProblem
+from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 
 K = TypeVar("K", bound=Hashable)
 
