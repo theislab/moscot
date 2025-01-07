@@ -8,7 +8,7 @@ import anndata as ad
 
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import CondOTProblem
-from moscot.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
+from moscot.neural.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
 from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import neurallin_cond_args_1
