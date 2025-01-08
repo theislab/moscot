@@ -2,19 +2,18 @@ import os
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
+from jax import Array as JaxArray
+from numpy.typing import DTypeLike as DTypeLikeNumpy
+from numpy.typing import NDArray
 from ott.initializers.linear.initializers import SinkhornInitializer
 from ott.initializers.linear.initializers_lr import LRInitializer
 from ott.initializers.quadratic.initializers import BaseQuadraticInitializer
 
 # TODO(michalk8): polish
 
-try:
-    from numpy.typing import DTypeLike, NDArray
 
-    ArrayLike = NDArray[np.floating]
-except (ImportError, TypeError):
-    ArrayLike = np.ndarray  # type: ignore[misc]
-    DTypeLike = np.dtype  # type: ignore[misc]
+ArrayLike = Union[NDArray[np.floating], JaxArray]
+DTypeLike = DTypeLikeNumpy
 
 ProblemKind_t = Literal["linear", "quadratic", "unknown"]
 Numeric_t = Union[int, float]  # type of `time_key` arguments

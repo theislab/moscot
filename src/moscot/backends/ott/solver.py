@@ -53,7 +53,7 @@ from moscot.backends.ott._utils import (
     densify,
     ensure_2d,
 )
-from moscot.backends.ott.output import GraphOTTOutput, OTTNeuralOutput, OTTOutput
+from moscot.backends.ott.output import GraphOTTOutput, NeuralOutput, OTTOutput
 from moscot.base.problems._utils import TimeScalesHeatKernel
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
@@ -699,10 +699,10 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         return {"batch_size", "train_size", "trainloader", "validloader", "seed"}, {}  # type: ignore[return-value]
 
-    def _solve(self, data_samplers: Tuple[MultiLoader, MultiLoader]) -> OTTNeuralOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[MultiLoader, MultiLoader]) -> NeuralOutput:  # type: ignore[override]
         seed = self._neural_kwargs.get("seed", 0)  # TODO(ilan-gold): unify rng hadnling like OTT tests
         rng = jax.random.PRNGKey(seed)
         logs = self.solver(
             data_samplers[0], n_iters=self._neural_kwargs.get("n_iters", 100), rng=rng
         )  # TODO(ilan-gold): validation and figure out defualts
-        return OTTNeuralOutput(self.solver, logs)
+        return NeuralOutput(self.solver, logs)

@@ -65,8 +65,8 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             adata_tgt=self.adata_sc,
             src_obs_mask=src_mask,
             tgt_obs_mask=None,
-            src_var_mask=self.filtered_vars,  # type: ignore[arg-type]
-            tgt_var_mask=self.filtered_vars,  # type: ignore[arg-type]
+            src_var_mask=self.filtered_vars,
+            tgt_var_mask=self.filtered_vars,
             src_key=src,
             tgt_key=tgt,
             **kwargs,
