@@ -6,9 +6,9 @@ from ott.geometry import costs
 
 import anndata as ad
 
-from moscot.base.output import BaseDiscreteSolverOutput
-from moscot.base.problems import CondOTProblem
-from moscot.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
+from moscot.base.output import BaseSolverOutput
+from moscot.neural.base.problems import NeuralOTProblem
+from moscot.neural.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
 from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import neurallin_cond_args_1
@@ -19,7 +19,7 @@ class TestGENOTLinProblem:
     def test_prepare(self, adata_time: ad.AnnData):
         problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        assert isinstance(problem, CondOTProblem)
+        assert isinstance(problem, NeuralOTProblem)
         assert isinstance(problem.distributions, DistributionCollection)
         assert list(problem.distributions.keys()) == [0, 1, 2]
 
@@ -43,7 +43,7 @@ class TestGENOTLinProblem:
         problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neurallin_cond_args_1)
-        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
+        assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_reproducibility(self, adata_time: ad.AnnData):
         cond_zero_mask = np.array(adata_time.obs["time"] == 0)

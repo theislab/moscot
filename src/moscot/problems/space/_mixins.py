@@ -721,7 +721,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B], AbstractSpSc):
 
 def _compute_correspondence(
     spatial: ArrayLike,
-    features: ArrayLike,
+    features: Union[ArrayLike, sp.spmatrix, sp.sparray],
     interval: Union[int, ArrayLike] = 10,
     max_dist: Optional[int] = None,
 ) -> pd.DataFrame:
@@ -743,7 +743,8 @@ def _compute_correspondence(
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.toarray()  # type: ignore[attr-defined]
+        features_sp: Union[sp.spmatrix, sp.sparray] = features
+        features = features_sp.toarray()
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):

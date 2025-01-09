@@ -27,7 +27,6 @@ Generic Problems
     generic.SinkhornProblem
     generic.GWProblem
     generic.FGWProblem
-    generic.GENOTLinProblem
 
 Plotting
 ~~~~~~~~
