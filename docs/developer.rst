@@ -99,8 +99,6 @@ Miscellaneous
     data.apoptosis_markers
     tagged_array.TaggedArray
     tagged_array.Tag
-    tagged_array.DistributionCollection
-    tagged_array.DistributionContainer
 
 .. currentmodule:: moscot.base.problems
 .. autosummary::

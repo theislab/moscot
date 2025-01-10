@@ -1,8 +1,8 @@
 from typing import (
     Any,
+    Generic,
     Hashable,
     Iterable,
-    List,
     Literal,
     Mapping,
     Optional,
@@ -12,17 +12,22 @@ from typing import (
     Union,
 )
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from anndata import AnnData
 
 from moscot import backends
+from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseNeuralOutput
 from moscot.base.problems._utils import wrap_prepare, wrap_solve
 from moscot.base.problems.problem import BaseProblem
 from moscot.base.solver import OTSolver
+from moscot.neural.data import DistributionCollection, NeuralDistribution
 from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     ExplicitPolicy,
     Policy_t,
@@ -30,14 +35,13 @@ from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     SubsetPolicy,
     create_policy,
 )
-from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 
 K = TypeVar("K", bound=Hashable)
 
 __all__ = ["NeuralOTProblem"]
 
 
-class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
+class NeuralOTProblem(BaseProblem, Generic[K]):  # TODO(@MUCDK) check generic types, save and load
     """
     Base class for all conditional (nerual) optimal transport problems.
 
@@ -57,9 +61,8 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         super().__init__(**kwargs)
         self._adata = adata
 
-        self._distributions: Optional[DistributionCollection[K]] = None  # type: ignore[valid-type]
+        self._distributions: Optional[DistributionCollection[K]] = None
         self._policy: Optional[SubsetPolicy[Any]] = None
-        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
         self._solver: Optional[OTSolver[BaseNeuralOutput]] = None
         self._solution: Optional[BaseNeuralOutput] = None
@@ -72,15 +75,14 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         self,
         policy_key: str,
         policy: Policy_t,
-        xy: Mapping[str, Any],
-        xx: Mapping[str, Any],
-        conditions: Mapping[str, Any],
-        a: Optional[str] = None,
-        b: Optional[str] = None,
+        lin: Mapping[str, Any],
+        src_quad: Optional[Mapping[str, Any]] = None,
+        tgt_quad: Optional[Mapping[str, Any]] = None,
+        condition: Optional[Mapping[str, Any]] = None,
         subset: Optional[Sequence[Tuple[K, K]]] = None,
+        seed: int = 0,
         reference: K = None,
-        **kwargs: Any,
-    ) -> "NeuralOTProblem":
+    ) -> "NeuralOTProblem[K]":
         """Prepare conditional optimal transport problem.
 
         Parameters
@@ -92,10 +94,6 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
             Policy defining which pairs of distributions to sample from during training.
         policy_key
             %(key)s
-        a
-            Source marginals.
-        b
-            Target marginals.
         kwargs
             Keyword arguments when creating the source/target marginals.
 
@@ -105,6 +103,7 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         Self and modifies the following attributes:
         TODO.
         """
+        self._seed = seed
         self._problem_kind = "linear"
         self._distributions = DistributionCollection()
         self._solution = None
@@ -121,25 +120,45 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
             self._policy = self._policy.create_graph(reference=reference)
         else:
             _ = self.policy.create_graph()  # type: ignore[union-attr]
-        self._sample_pairs = list(self.policy._graph)  # type: ignore[union-attr]
 
+        if src_quad is None and tgt_quad is not None:
+            raise ValueError("If `tgt_quad` is provided, `src_quad` must also be provided.")
+        if src_quad is not None and tgt_quad is None:
+            raise ValueError("If `src_quad` is provided, `tgt_quad` must also be provided.")
+        if src_quad is not None:
+            # which edges will be always source
+            source_nodes = {el[0] for el in self.policy.plan()}  # type: ignore[union-attr]
+            target_nodes = {el[1] for el in self.policy.plan()}  # type: ignore[union-attr]
+            # if there aren't nodes that are always source or target, we will warn the user
+            # that we will choose source quad attributes
+            tgt_quad_nodes = target_nodes - source_nodes
+            if not source_nodes.isdisjoint(target_nodes):
+                logger.warning(
+                    "Some nodes are both source and target in the policy plan, "
+                    "we will choose source quad attributes for such nodes."
+                )
         for el in self.policy.categories:  # type: ignore[union-attr]
             adata_masked = self.adata[self._create_mask(el)]
-            a_created = self._create_marginals(adata_masked, data=a, source=True, **kwargs)
-            b_created = self._create_marginals(adata_masked, data=b, source=False, **kwargs)
-            self.distributions[el] = DistributionContainer.from_adata(  # type: ignore[index]
-                adata_masked, a=a_created, b=b_created, **xy, **xx, **conditions
+            # TODO: Marginals
+            quad = None
+            if src_quad is not None:
+                quad = tgt_quad if el in tgt_quad_nodes else src_quad
+            self.distributions[el] = NeuralOTProblem._create_neural_distribution(  # type: ignore[index]
+                adata_masked,
+                lin=lin,
+                quad=quad,
+                condition=condition,
             )
         return self
 
     @wrap_solve
     def solve(
         self,
-        backend: Literal["ott"] = "ott",
-        solver_name: Literal["GENOTLinSolver"] = "GENOTLinSolver",
+        backend: Literal["neural_ott"] = "neural_ott",
+        solver_name: Literal["GENOTSolver"] = "GENOTSolver",
         device: Optional[Device_t] = None,
         **kwargs: Any,
-    ) -> "NeuralOTProblem":
+    ) -> "NeuralOTProblem[K]":
         """Solve optimal transport problem.
 
         Parameters
@@ -158,27 +177,30 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        tmp = next(iter(self.distributions))  # type: ignore[arg-type]
-        input_dim = self.distributions[tmp].xy.shape[1]  # type: ignore[union-attr, index]
-        cond_dim = self.distributions[tmp].conditions.shape[1]  # type: ignore[union-attr, index]
+        assert self.distributions is not None
+        distributions: DistributionCollection[K] = self.distributions
+        assert next(iter(self.distributions.keys())) is not None
+        tmp_key: K = next(iter(self.distributions.keys()))
+        input_dim = distributions[tmp_key].shared_space.shape[1]
+        cond_dim = 0
+        if distributions[tmp_key].condition is not None:
+            cond_dim = distributions[tmp_key].condition.shape[1]  # type: ignore[union-attr]
 
         solver_class = backends.get_solver(
             self.problem_kind, solver_name=solver_name, backend=backend, return_class=True
         )
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
         self._solver = solver_class(input_dim=input_dim, cond_dim=cond_dim, **init_kwargs)
-        # note that the solver call consists of solver._prepare and solver._solve
-        sample_pairs = self._sample_pairs if self._sample_pairs is not None else []
         self._solution = self._solver(  # type: ignore[misc]
             device=device,
             distributions=self.distributions,
-            sample_pairs=self._sample_pairs,
-            is_conditional=len(sample_pairs) > 1,
+            policy=self.policy,
             **call_kwargs,
         )
 
         return self
 
+    # TODO: Marginals
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
     ) -> ArrayLike:
@@ -241,3 +263,76 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
     def policy(self) -> Optional[SubsetPolicy[Any]]:
         """Policy used to subset the data."""
         return self._policy
+
+    @staticmethod
+    def _extract_data(
+        adata: AnnData,
+        *,
+        attr: Literal["X", "obs", "obsp", "obsm", "var", "varm", "layers", "uns"],
+        key: Optional[str] = None,
+    ) -> jax.Array:
+        modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
+        data = getattr(adata, attr)
+
+        try:
+            if key is not None:
+                data = data[key]
+        except KeyError:
+            raise KeyError(f"Unable to fetch data from `{modifier}`.") from None
+        except IndexError:
+            raise IndexError(f"Unable to fetch data from `{modifier}`.") from None
+
+        if attr == "obs":
+            data = np.asarray(data)[:, None]
+        if sp.issparse(data):
+            logger.warning(f"Densifying data in `{modifier}`")
+            data = data.toarray()
+        if data.ndim != 2:
+            raise ValueError(f"Expected `{modifier}` to have `2` dimensions, found `{data.ndim}`.")
+
+        return jnp.array(data)
+
+    @staticmethod
+    def _create_neural_distribution(
+        adata: AnnData,
+        lin: Optional[Mapping[str, Any]] = None,
+        quad: Optional[Mapping[str, Any]] = None,
+        condition: Optional[Mapping[str, Any]] = None,
+    ) -> NeuralDistribution:
+        fields = [
+            ("shared_space", lin),
+            ("incomparable_space", quad),
+            ("condition", condition),
+        ]
+        return NeuralDistribution(
+            **{
+                field_name: NeuralOTProblem._extract_data(adata, **field)
+                for field_name, field in fields
+                if field is not None
+            }
+        )
+
+    @staticmethod
+    def _handle_attr(elem: Union[str, Mapping[str, Any]]) -> dict[str, Any]:
+        if isinstance(elem, str):
+            return {
+                "attr": "obsm",
+                "key": elem,
+            }
+        if isinstance(elem, Mapping):
+            attr = dict(elem)
+            if "attr" not in attr:
+                raise KeyError("`attr` must be provided when `attr` is a mapping.")
+            if elem["attr"] == "X":
+                return {
+                    "attr": "X",
+                }
+            if elem["attr"] in ("obsm", "obsp", "obs", "uns"):
+                if "key" not in elem:
+                    raise KeyError("`key` must be provided when `attr` is `obsm`, `obsp`, `obs`, or `uns`.")
+                return {
+                    "attr": elem["attr"],
+                    "key": elem["key"],
+                }
+
+        raise TypeError(f"Unrecognized `attr` format: {elem}.")

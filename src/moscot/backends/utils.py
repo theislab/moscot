@@ -1,20 +1,21 @@
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Literal, Tuple, TypeVar, Union
 
 from moscot import _registry
 from moscot._types import ProblemKind_t
 
 if TYPE_CHECKING:
     from moscot.backends import ott
+    from moscot.neural.backends import neural_ott
+
 
 __all__ = ["get_solver", "register_solver", "get_available_backends"]
 
-register_solver_t = Callable[
-    [Literal["linear", "quadratic"], Optional[Literal["GENOTLinSolver"]]],
-    Union["ott.SinkhornSolver", "ott.GWSolver", "ott.GENOTLinSolver"],
-]
-
 
 _REGISTRY = _registry.Registry()
+
+GWSolver = TypeVar("GWSolver", bound="ott.GWSolver")
+SinkhornSolver = TypeVar("SinkhornSolver", bound="ott.SinkhornSolver")
+GENOTSolver = TypeVar("GENOTSolver", bound="neural_ott.GENOTSolver")
 
 
 def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_class: bool = False, **kwargs: Any) -> Any:
@@ -27,7 +28,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
 
 def register_solver(
     backend: str,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.GENOTLinSolver"]:
+) -> Union[SinkhornSolver, GWSolver, GENOTSolver]:
     """Register a solver for a specific backend.
 
     Parameters
@@ -42,20 +43,30 @@ def register_solver(
     return _REGISTRY.register(backend)  # type: ignore[return-value]
 
 
-@register_solver("ott")
-def _(
+@register_solver("ott")  # type: ignore[misc]
+def create_ott_solver(
     problem_kind: Literal["linear", "quadratic"],
-    solver_name: Optional[Literal["GENOTLinSolver"]] = None,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.GENOTLinSolver"]:
+    solver_name: Any = None,
+) -> Union[SinkhornSolver, GWSolver]:
     from moscot.backends import ott
 
     if problem_kind == "linear":
-        if solver_name == "GENOTLinSolver":
-            return ott.GENOTLinSolver  # type: ignore[return-value]
-        if solver_name is None:
-            return ott.SinkhornSolver  # type: ignore[return-value]
+        return ott.SinkhornSolver  # type: ignore[return-value]
     if problem_kind == "quadratic":
         return ott.GWSolver  # type: ignore[return-value]
+    raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}`, {solver_name} problem.")
+
+
+@register_solver("neural_ott")
+def create_neural_ott_solver(
+    problem_kind: Literal["linear", "quadratic"],
+    solver_name: Any = None,
+) -> GENOTSolver:
+    from moscot.neural.backends import neural_ott
+
+    if solver_name == "GENOTSolver":
+        return neural_ott.GENOTSolver
+
     raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}`, {solver_name} problem.")
 
 
