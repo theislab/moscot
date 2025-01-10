@@ -126,7 +126,7 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
     @wrap_solve
     def solve(
         self,
-        backend: Literal["ott"] = "ott",
+        backend: Literal["neural_ott"] = "neural_ott",
         solver_name: Literal["GENOTSolver"] = "GENOTSolver",
         device: Optional[Device_t] = None,
         **kwargs: Any,
