@@ -1,16 +1,13 @@
-from moscot.utils.subset_policy import SubsetPolicy
-from moscot.neural.data._distribution_collection import DistributionCollection
-
-import jax
-
-from typing import Any, Dict, Iterator, List, Optional, Tuple
-
+import functools
+from typing import Any, Dict, Hashable, Iterator, Optional, Sequence, Tuple, TypeVar
 
 import jax
 import jax.numpy as jnp
-from typing import Any, Dict, Optional, List, Tuple, Iterator, Sequence
 
-import functools
+from moscot.neural.data._distribution_collection import DistributionCollection
+from moscot.utils.subset_policy import SubsetPolicy
+
+K = TypeVar("K", bound=Hashable)
 
 
 @functools.partial(jax.jit, static_argnums=(3,))
@@ -59,7 +56,7 @@ class PolicyDataLoader:
         self,
         rng: jax.Array,
         policy: SubsetPolicy[Any],
-        distributions: DistributionCollection,
+        distributions: DistributionCollection[K],
         batch_size: int = 128,
         plan: Optional[Sequence[Tuple[Any, Any]]] = None,
         src_prefix: str = "src",
@@ -109,7 +106,7 @@ class PolicyDataLoader:
           2) Use _sample_indices(...) to get random sample positions from the node's data.
           3) Use _gather_array(...) to gather from .xy, .xx, .conditions.
           4) Build a dict and yield it.
-        """
+        """  # noqa: D205
         while True:
             if not self.edges:
                 break

@@ -1,65 +1,22 @@
-import abc
 import functools
-import inspect
 import math
-import types
-from typing import (
-    Any,
-    Hashable,
-    List,
-    Literal,
-    Mapping,
-    NamedTuple,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Hashable, Set, Tuple, TypeVar
 
 import optax
 
 import jax
 import jax.numpy as jnp
-import numpy as np
-from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
-from ott.neural.datasets import OTData, OTDataset
 from ott.neural.methods.flows import dynamics, genot
 from ott.neural.networks.layers import time_encoder
 from ott.neural.networks.velocity_field import VelocityField
-from ott.problems.linear import linear_problem
-from ott.problems.quadratic import quadratic_problem
-from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 from ott.solvers.utils import uniform_sampler
-from moscot.neural.data import PolicyDataLoader
 
-from moscot._logging import logger
-from moscot._types import (
-    ArrayLike,
-    LRInitializer_t,
-    ProblemKind_t,
-    QuadInitializer_t,
-    SinkhornInitializer_t,
-)
-from moscot.backends.ott._utils import (
-    InitializerResolver,
-    Loader,
-    MultiLoader,
-    _instantiate_geodesic_cost,
-    alpha_to_fused_penalty,
-    check_shapes,
-    convert_scipy_sparse,
-    data_match_fn,
-    densify,
-    ensure_2d,
-)
-from moscot.utils.subset_policy import SubsetPolicy
-from moscot.backends.ott.output import GraphOTTOutput, NeuralOutput, OTTOutput
-from moscot.base.problems._utils import TimeScalesHeatKernel
+from moscot._types import ProblemKind_t
+from moscot.backends.ott._utils import data_match_fn
+from moscot.backends.ott.output import NeuralOutput
 from moscot.base.solver import BaseSolver
-from moscot.neural.data import DistributionCollection
-from typing import TypeVar
+from moscot.neural.data import DistributionCollection, PolicyDataLoader
+from moscot.utils.subset_policy import SubsetPolicy
 
 K = TypeVar("K", bound=Hashable)
 
@@ -69,11 +26,11 @@ __all__ = ["GENOTSolver"]
 
 def _split_data(
     rng: jax.random.PRNGKey,
-    distributions: DistributionCollection,
+    distributions: DistributionCollection[K],
     train_size: float = 0.9,
 ) -> Any:
-    train_collection: DistributionCollection = {}
-    val_collection: DistributionCollection = {}
+    train_collection: DistributionCollection[K] = {}
+    val_collection: DistributionCollection[K] = {}
     for key, dist in distributions.items():
         n_train_x = math.ceil(train_size * dist.n_samples)
         idxs = jax.random.permutation(rng, jnp.arange(dist.n_samples))
@@ -204,7 +161,6 @@ class GENOTSolver(BaseSolver[NeuralOutput]):
             **self._neural_kwargs.get("velocity_field_train_state_kwargs", {}),
         )
         return train_loader, validate_loader
-
 
     @property
     def solver(self) -> genot.GENOT:

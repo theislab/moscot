@@ -1,18 +1,16 @@
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Tuple, Hashable, Union
+from typing import Any, Hashable, Literal, Optional, Tuple, TypeVar, Union
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import scipy.sparse as sp
-import jax.numpy as jnp
-import jax
 
 from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import CostFn_t
 from moscot.costs import get_cost
-
-from typing import TypeVar
 
 K = TypeVar("K", bound=Hashable)
 
@@ -61,7 +59,7 @@ class DistributionContainer:
     @property
     def n_samples(self) -> int:
         """Number of samples in the distribution."""
-        return self.xy.shape[0] if self.contains_linear else self.xx.shape[0]
+        return self.xy.shape[0] if self.contains_linear else self.xx.shape[0]  # type: ignore[union-attr]
 
     @staticmethod
     def _extract_data(
@@ -187,8 +185,7 @@ class DistributionContainer:
         return cls(xy=xy_data, xx=xx_data, conditions=conditions_data, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
 
     def __getitem__(
-        self,
-        idx: Union[int, slice, jnp.ndarray, jax.Array, list, tuple]
+        self, idx: Union[int, slice, jnp.ndarray, jax.Array, list[Any], tuple[Any]]
     ) -> "DistributionContainer":
         """
         Return a new DistributionContainer where .xy, .xx, .conditions

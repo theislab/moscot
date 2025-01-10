@@ -1,6 +1,7 @@
 import optax
 import pytest
 
+import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs
 
@@ -8,11 +9,11 @@ import anndata as ad
 
 from moscot.base.output import BaseSolverOutput
 from moscot.neural.base.problems import NeuralOTProblem
-from moscot.neural.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
 from moscot.neural.data import DistributionCollection, DistributionContainer
+from moscot.neural.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import neurallin_cond_args_1
-import jax.numpy as jnp
+
 
 class TestGENOTLinProblem:
     @pytest.mark.fast

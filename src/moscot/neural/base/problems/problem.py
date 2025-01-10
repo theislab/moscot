@@ -2,7 +2,6 @@ from typing import (
     Any,
     Hashable,
     Iterable,
-    List,
     Literal,
     Mapping,
     Optional,
