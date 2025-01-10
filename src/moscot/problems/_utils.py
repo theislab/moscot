@@ -40,6 +40,7 @@ def _handle_mapping_joint_attr(
 ) -> Tuple[Dict[str, Any], Union[Literal["local-pca"], Callback_t], Dict[str, Any]]:
     joint_attr = dict(joint_attr)
     xy_callback_kwargs = dict(xy_callback_kwargs)
+
     if "attr" in joint_attr and joint_attr["attr"] == "X":
         return {"x_attr": "X", "y_attr": "X"}, xy_callback, xy_callback_kwargs  # type: ignore[return-value]
     if "attr" in joint_attr and joint_attr["attr"] == "obsm":

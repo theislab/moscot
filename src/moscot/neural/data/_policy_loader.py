@@ -1,10 +1,13 @@
 import functools
-from typing import Any, Dict, Hashable, Iterator, Optional, Sequence, Tuple, TypeVar
+from typing import Any, Dict, Hashable, Iterator, Optional, Tuple, TypeVar
 
 import jax
 import jax.numpy as jnp
 
-from moscot.neural.data._distribution_collection import DistributionCollection
+from moscot.neural.data._distribution_collection import (
+    DistributionCollection,
+    NeuralDistribution,
+)
 from moscot.utils.subset_policy import SubsetPolicy
 
 K = TypeVar("K", bound=Hashable)
@@ -58,46 +61,30 @@ class PolicyDataLoader:
         policy: SubsetPolicy[Any],
         distributions: DistributionCollection[K],
         batch_size: int = 128,
-        plan: Optional[Sequence[Tuple[Any, Any]]] = None,
         src_prefix: str = "src",
         tgt_prefix: str = "tgt",
         src_renames: Optional[Dict[str, str]] = None,
         tgt_renames: Optional[Dict[str, str]] = None,
     ):
-
         self.policy = policy
         self.distributions = distributions
         self.rng = rng
         self.batch_size = batch_size
-        self.edges = plan if plan is not None else self.policy.plan()
+        self.edges = self.policy.plan()
         self.src_prefix = src_prefix
         self.tgt_prefix = tgt_prefix
         self.src_renames = src_renames if src_renames is not None else {}
         self.tgt_renames = tgt_renames if tgt_renames is not None else {}
-
+        self.fields = NeuralDistribution.FIELDS
         # Precompute an index array for each node
         self.node_indices: Dict[Any, jnp.ndarray] = {}
         self._init_indices()
 
     def _init_indices(self) -> None:
-        """Verify shape consistency within each DistributionContainer, store jnp.arange(...) as node_indices."""
+        """Precompute an index array for each node."""
         for node, container in self.distributions.items():
-            # Gather shapes of non-None arrays
-            shapes = []
-            if container.xy is not None:
-                shapes.append(container.xy.shape[0])
-            if container.xx is not None:
-                shapes.append(container.xx.shape[0])
-            if container.conditions is not None:
-                shapes.append(container.conditions.shape[0])
-
-            # All must match
-            if shapes and not all(s == shapes[0] for s in shapes):
-                raise ValueError(f"Inconsistent shape for node {node}: {shapes}")
-
-            if shapes:
-                n = shapes[0]
-                self.node_indices[node] = jnp.arange(n)
+            idx = jnp.arange(container.n_samples)
+            self.node_indices[node] = idx
 
     def __iter__(self) -> Iterator[Dict[str, jnp.ndarray]]:
         """
@@ -138,24 +125,19 @@ class PolicyDataLoader:
             batch_dict = {}
 
             src_candidates = [
-                ("xy", src_container.xy),
-                ("xx", src_container.xx),
-                ("conditions", src_container.conditions),
+                (f, getattr(src_container, f)) for f in self.fields if getattr(src_container, f) is not None
             ]
             for key, arr in src_candidates:
-                if arr is not None:
-                    key_new = self.src_renames.get(key, key)
-                    batch_dict[f"{self.src_prefix}_{key_new}"] = _gather_array(arr, src_idxs)
+                key_new = self.src_renames.get(key, key)
+                batch_dict[f"{self.src_prefix}_{key_new}"] = _gather_array(arr, src_idxs)
 
             tgt_candidates = [
-                ("xy", tgt_container.xy),
-                ("xx", tgt_container.xx),
-                ("conditions", tgt_container.conditions),
+                (f, getattr(tgt_container, f)) for f in self.fields if getattr(tgt_container, f) is not None
             ]
             for key, arr in tgt_candidates:
-                if arr is not None:
-                    key_new = self.tgt_renames.get(key, key)
-                    batch_dict[f"{self.tgt_prefix}_{key_new}"] = _gather_array(arr, tgt_idxs)
+                key_new = self.tgt_renames.get(key, key)
+                batch_dict[f"{self.tgt_prefix}_{key_new}"] = _gather_array(arr, tgt_idxs)
+
             if not batch_dict:
                 continue
 

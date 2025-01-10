@@ -69,8 +69,8 @@ class GENOTSolver(BaseSolver[NeuralOutput]):
         rng = jax.random.PRNGKey(seed)
 
         src_renames = tgt_renames = {
-            "xy": "lin",
-            "xx": "quad",
+            "shared_space": "lin",
+            "incomparable_space": "quad",
         }
 
         if train_size == 1.0:
@@ -80,7 +80,6 @@ class GENOTSolver(BaseSolver[NeuralOutput]):
                 policy=policy,
                 distributions=distributions,
                 batch_size=batch_size,
-                plan=policy.plan(),
                 src_renames=src_renames,
                 tgt_renames=tgt_renames,
             )
@@ -89,7 +88,6 @@ class GENOTSolver(BaseSolver[NeuralOutput]):
                 policy=policy,
                 distributions=distributions,
                 batch_size=batch_size,
-                plan=policy.plan(),
                 src_renames=src_renames,
                 tgt_renames=tgt_renames,
             )
@@ -102,7 +100,6 @@ class GENOTSolver(BaseSolver[NeuralOutput]):
                 policy=policy,
                 distributions=train_dist,
                 batch_size=batch_size,
-                plan=policy.plan(),
                 src_renames=src_renames,
                 tgt_renames=tgt_renames,
             )
@@ -111,7 +108,6 @@ class GENOTSolver(BaseSolver[NeuralOutput]):
                 policy=policy,
                 distributions=valid_dist,
                 batch_size=batch_size,
-                plan=policy.plan(),
                 src_renames=src_renames,
                 tgt_renames=tgt_renames,
             )
