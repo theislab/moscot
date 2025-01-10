@@ -1,6 +1,6 @@
 import types
 from types import MappingProxyType
-from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Literal, Mapping, Tuple, Type, Union
 
 from moscot import _constants
 from moscot._types import CostKwargs_t, OttCostFn_t, Policy_t
@@ -22,9 +22,12 @@ class GENOTLinProblem(NeuralOTProblem):
         key: str,
         joint_attr: Union[str, Mapping[str, Any]],
         conditional_attr: Union[str, Mapping[str, Any]],
+        # src_condition_attr: Union[str, Mapping[str, Any]],
+        # src_augment_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        # src_quad_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        # tgt_quad_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        # tgt_flow_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star", "explicit"] = "sequential",
-        a: Optional[str] = None,
-        b: Optional[str] = None,
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         **kwargs: Any,
@@ -40,8 +43,6 @@ class GENOTLinProblem(NeuralOTProblem):
             xy=xy,
             xx=xx,
             conditions=conditions,
-            a=a,
-            b=b,
             **kwargs,
         )
 
@@ -58,14 +59,12 @@ class GENOTLinProblem(NeuralOTProblem):
         """Solve."""
         return super().solve(
             batch_size=batch_size,
-            # tau_a=tau_a, # TODO: unbalancedness handler
-            # tau_b=tau_b,
             seed=seed,
             n_iters=iterations,
             valid_freq=valid_freq,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name="GENOTLinSolver",
+            solver_name="GENOTSolver",
             **kwargs,
         )
 

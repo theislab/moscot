@@ -23,6 +23,7 @@ from moscot.base.output import BaseNeuralOutput
 from moscot.base.problems._utils import wrap_prepare, wrap_solve
 from moscot.base.problems.problem import BaseProblem
 from moscot.base.solver import OTSolver
+from moscot.neural.data import DistributionCollection, DistributionContainer
 from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     ExplicitPolicy,
     Policy_t,
@@ -30,7 +31,6 @@ from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     SubsetPolicy,
     create_policy,
 )
-from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 
 K = TypeVar("K", bound=Hashable)
 
@@ -59,7 +59,6 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
 
         self._distributions: Optional[DistributionCollection[K]] = None  # type: ignore[valid-type]
         self._policy: Optional[SubsetPolicy[Any]] = None
-        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
         self._solver: Optional[OTSolver[BaseNeuralOutput]] = None
         self._solution: Optional[BaseNeuralOutput] = None
@@ -75,11 +74,9 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         xy: Mapping[str, Any],
         xx: Mapping[str, Any],
         conditions: Mapping[str, Any],
-        a: Optional[str] = None,
-        b: Optional[str] = None,
         subset: Optional[Sequence[Tuple[K, K]]] = None,
+        seed: int = 0,
         reference: K = None,
-        **kwargs: Any,
     ) -> "NeuralOTProblem":
         """Prepare conditional optimal transport problem.
 
@@ -92,10 +89,6 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
             Policy defining which pairs of distributions to sample from during training.
         policy_key
             %(key)s
-        a
-            Source marginals.
-        b
-            Target marginals.
         kwargs
             Keyword arguments when creating the source/target marginals.
 
@@ -105,6 +98,7 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         Self and modifies the following attributes:
         TODO.
         """
+        self._seed = seed
         self._problem_kind = "linear"
         self._distributions = DistributionCollection()
         self._solution = None
@@ -121,14 +115,12 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
             self._policy = self._policy.create_graph(reference=reference)
         else:
             _ = self.policy.create_graph()  # type: ignore[union-attr]
-        self._sample_pairs = list(self.policy._graph)  # type: ignore[union-attr]
 
         for el in self.policy.categories:  # type: ignore[union-attr]
             adata_masked = self.adata[self._create_mask(el)]
-            a_created = self._create_marginals(adata_masked, data=a, source=True, **kwargs)
-            b_created = self._create_marginals(adata_masked, data=b, source=False, **kwargs)
+            # TODO: Marginals
             self.distributions[el] = DistributionContainer.from_adata(  # type: ignore[index]
-                adata_masked, a=a_created, b=b_created, **xy, **xx, **conditions
+                adata_masked, **xy, **xx, **conditions
             )
         return self
 
@@ -136,7 +128,7 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
     def solve(
         self,
         backend: Literal["ott"] = "ott",
-        solver_name: Literal["GENOTLinSolver"] = "GENOTLinSolver",
+        solver_name: Literal["GENOTSolver"] = "GENOTSolver",
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "NeuralOTProblem":
@@ -167,18 +159,16 @@ class NeuralOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save an
         )
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
         self._solver = solver_class(input_dim=input_dim, cond_dim=cond_dim, **init_kwargs)
-        # note that the solver call consists of solver._prepare and solver._solve
-        sample_pairs = self._sample_pairs if self._sample_pairs is not None else []
         self._solution = self._solver(  # type: ignore[misc]
             device=device,
             distributions=self.distributions,
-            sample_pairs=self._sample_pairs,
-            is_conditional=len(sample_pairs) > 1,
+            policy=self.policy,
             **call_kwargs,
         )
 
         return self
 
+    # TODO: Marginals
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
     ) -> ArrayLike:

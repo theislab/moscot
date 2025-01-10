@@ -5,12 +5,13 @@ from moscot._types import ProblemKind_t
 
 if TYPE_CHECKING:
     from moscot.backends import ott
+    from moscot.neural.backends import neural_ott
 
 __all__ = ["get_solver", "register_solver", "get_available_backends"]
 
 register_solver_t = Callable[
-    [Literal["linear", "quadratic"], Optional[Literal["GENOTLinSolver"]]],
-    Union["ott.SinkhornSolver", "ott.GWSolver", "ott.GENOTLinSolver"],
+    [Literal["linear", "quadratic"], Optional[Literal["GENOTSolver"]]],
+    Union["ott.SinkhornSolver", "ott.GWSolver", "neural_ott.GENOTSolver"],
 ]
 
 
@@ -27,7 +28,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
 
 def register_solver(
     backend: str,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.GENOTLinSolver"]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "neural_ott.GENOTSolver"]:
     """Register a solver for a specific backend.
 
     Parameters
@@ -45,13 +46,15 @@ def register_solver(
 @register_solver("ott")
 def _(
     problem_kind: Literal["linear", "quadratic"],
-    solver_name: Optional[Literal["GENOTLinSolver"]] = None,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.GENOTLinSolver"]:
+    solver_name: Optional[Literal["GENOTSolver"]] = None,
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "neural_ott.GENOTSolver"]:
     from moscot.backends import ott
 
     if problem_kind == "linear":
-        if solver_name == "GENOTLinSolver":
-            return ott.GENOTLinSolver  # type: ignore[return-value]
+        if solver_name == "GENOTSolver":
+            from moscot.neural.backends import neural_ott
+
+            return neural_ott.GENOTSolver  # type: ignore[return-value]
         if solver_name is None:
             return ott.SinkhornSolver  # type: ignore[return-value]
     if problem_kind == "quadratic":

@@ -9,10 +9,10 @@ import anndata as ad
 from moscot.base.output import BaseSolverOutput
 from moscot.neural.base.problems import NeuralOTProblem
 from moscot.neural.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
-from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
+from moscot.neural.data import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import neurallin_cond_args_1
-
+import jax.numpy as jnp
 
 class TestGENOTLinProblem:
     @pytest.mark.fast
@@ -26,15 +26,11 @@ class TestGENOTLinProblem:
         container = problem.distributions[0]
         n_obs_0 = adata_time[adata_time.obs["time"] == 0].n_obs
         assert isinstance(container, DistributionContainer)
-        assert isinstance(container.xy, np.ndarray)
+        assert isinstance(container.xy, jnp.ndarray)
         assert container.xy.shape == (n_obs_0, 50)
         assert container.xx is None
-        assert isinstance(container.conditions, np.ndarray)
+        assert isinstance(container.conditions, jnp.ndarray)
         assert container.conditions.shape == (n_obs_0, 1)
-        assert isinstance(container.a, np.ndarray)
-        assert container.a.shape == (n_obs_0,)
-        assert isinstance(container.b, np.ndarray)
-        assert container.b.shape == (n_obs_0,)
         assert isinstance(container.cost_xy, costs.SqEuclidean)
         assert container.cost_xx is None
 
