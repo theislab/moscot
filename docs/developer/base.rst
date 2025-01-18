@@ -11,7 +11,6 @@ Base
     problems.BaseCompoundProblem
     problems.CompoundProblem
     cost.BaseCost
-    problems.CondOTProblem
     problems.AnalysisMixin
     problems.BirthDeathMixin
     problems.birth_death.beta
