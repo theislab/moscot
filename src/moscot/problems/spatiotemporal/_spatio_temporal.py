@@ -65,9 +65,9 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         """Prepare the spatiotemporal problem problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/500_spatiotemporal` on how to
+            - See :doc:`../../notebooks/tutorials/500_spatiotemporal` on how to
               prepare and solve the :class:`~moscot.problems.spatiotemporal.SpatioTemporalProblem`.
-            - See :doc:`../notebooks/examples/problems/800_score_genes_for_marginals` on how to
+            - See :doc:`../../notebooks/examples/problems/800_score_genes_for_marginals` on how to
               :meth:`score genes for proliferation and apoptosis <score_genes_for_marginals>`.
 
         Parameters
@@ -198,7 +198,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         r"""Solve the spatiotemporal problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/500_spatiotemporal` on how to
+            - See :doc:`../../notebooks/tutorials/500_spatiotemporal` on how to
               prepare and solve the :class:`~moscot.problems.spatiotemporal.SpatioTemporalProblem`.
 
         Parameters
