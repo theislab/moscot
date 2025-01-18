@@ -42,8 +42,7 @@ def register_solver(
     return _REGISTRY.register(backend)  # type: ignore[return-value]
 
 
-# TODO(@MUCDK) fix mypy error
-@register_solver("ott")  # type: ignore[arg-type]
+@register_solver("ott")
 def _(
     problem_kind: Literal["linear", "quadratic"],
     solver_name: Optional[Literal["GENOTLinSolver"]] = None,

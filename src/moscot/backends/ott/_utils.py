@@ -184,7 +184,7 @@ def alpha_to_fused_penalty(alpha: float) -> float:
     return (1 - alpha) / alpha
 
 
-def densify(arr: ArrayLike) -> jax.Array:
+def densify(arr: Union[ArrayLike, sp.sparray, sp.spmatrix]) -> jax.Array:
     """If the input is sparse, convert it to dense.
 
     Parameters
@@ -197,7 +197,8 @@ def densify(arr: ArrayLike) -> jax.Array:
     dense :mod:`jax` array.
     """
     if sp.issparse(arr):
-        arr = arr.toarray()  # type: ignore[attr-defined]
+        arr_sp: Union[sp.sparray, sp.spmatrix] = arr
+        arr = arr_sp.toarray()
     elif isinstance(arr, jesp.BCOO):
         arr = arr.todense()
     return jnp.asarray(arr)

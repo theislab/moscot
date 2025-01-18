@@ -17,7 +17,7 @@ from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import get_nearest_neighbors
 from moscot.base.output import BaseDiscreteSolverOutput, BaseNeuralOutput
 
-__all__ = ["OTTOutput", "GraphOTTOutput", "OTTNeuralOutput"]
+__all__ = ["OTTOutput", "GraphOTTOutput", "NeuralOutput"]
 
 
 class OTTOutput(BaseDiscreteSolverOutput):
@@ -182,6 +182,9 @@ class OTTOutput(BaseDiscreteSolverOutput):
             axis=1 - forward,
         ).T  # convert to batch first
 
+    def _apply_forward(self, x: ArrayLike) -> ArrayLike:
+        return self._apply(x, forward=True)
+
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102
         if isinstance(self._output, sinkhorn.SinkhornOutput):
@@ -241,11 +244,11 @@ class OTTOutput(BaseDiscreteSolverOutput):
         return jnp.ones((n,))
 
 
-class OTTNeuralOutput(BaseNeuralOutput):
+class NeuralOutput(BaseNeuralOutput):
     """Output wrapper for GENOT."""
 
     def __init__(self, model: GENOT, logs: dict[str, list[float]]):
-        """Initialize `OTTNeuralOutput`.
+        """Initialize `NeuralOutput`.
 
         Parameters
         ----------
@@ -269,8 +272,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
         self,
         src_dist: ArrayLike,
         tgt_dist: ArrayLike,
-        forward: bool,
-        func: Callable[[jnp.ndarray], jnp.ndarray],
+        func: Callable[[ArrayLike], ArrayLike],
         save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
         batch_size: int = 1024,
         k: int = 30,
@@ -279,9 +281,9 @@ class OTTNeuralOutput(BaseNeuralOutput):
         recall_target: float = 0.95,
         aggregate_to_topk: bool = True,
     ) -> sp.csr_matrix:
-        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        row_indices: List[ArrayLike] = []
+        column_indices: List[ArrayLike] = []
+        distances_list: List[ArrayLike] = []
         if length_scale is None:
             key = jax.random.PRNGKey(seed)
             src_batch = src_dist[jax.random.choice(key, src_dist.shape[0], shape=((batch_size,)))]
@@ -306,20 +308,14 @@ class OTTNeuralOutput(BaseNeuralOutput):
         row_indices = jnp.concatenate(row_indices)
         column_indices = jnp.concatenate(column_indices)
         tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
-        if forward:
-            if save_transport_matrix:
-                self._transport_matrix = tm
-        else:
-            tm = tm.T
-            if save_transport_matrix:
-                self._inverse_transport_matrix = tm
+        if save_transport_matrix:
+            self._transport_matrix = tm
         return tm
 
     def project_to_transport_matrix(  # type:ignore[override]
         self,
         src_cells: ArrayLike,
         tgt_cells: ArrayLike,
-        forward: bool = True,
         condition: ArrayLike = None,
         save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
         batch_size: int = 1024,
@@ -351,7 +347,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
         save_transport_matrix
             Whether to save the transport matrix.
         batch_size
-            Number of data points in the source distribution the neighborhoodgraph is computed
+            Number of data points in the source distribution the neighborhood graph is computed
             for in parallel.
         k
             Number of neighbors to construct the k-nearest neighbor graph of a mapped cell.
@@ -375,13 +371,12 @@ class OTTNeuralOutput(BaseNeuralOutput):
         The projected transport matrix.
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
-        push = self.push if condition is None else lambda x: self.push(x, condition)
-        pull = self.pull if condition is None else lambda x: self.pull(x, condition)
-        func, src_dist, tgt_dist = (push, src_cells, tgt_cells) if forward else (pull, tgt_cells, src_cells)
+        conditioned_fn: Callable[[ArrayLike], ArrayLike] = lambda x: self.push(x, condition)
+        push = self.push if condition is None else conditioned_fn
+        func, src_dist, tgt_dist = (push, src_cells, tgt_cells)
         return self._project_transport_matrix(
             src_dist=src_dist,
             tgt_dist=tgt_dist,
-            forward=forward,
             func=func,
             save_transport_matrix=save_transport_matrix,  # TODO(@MUCDK) adapt order of arguments
             batch_size=batch_size,
@@ -406,31 +401,13 @@ class OTTNeuralOutput(BaseNeuralOutput):
         -------
         Pushed distribution.
         """
+        if isinstance(x, (bool, int, float, complex)):
+            raise ValueError("Expected array, found scalar value.")
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
-        return self._apply(x, cond=cond, forward=True)
+        return self._apply_forward(x, cond=cond)
 
-    def pull(self, x: ArrayLike, cond: Optional[ArrayLike] = None) -> ArrayLike:
-        """Pull distribution `x` conditioned on condition `cond`.
-
-        This does not make sense for some neural models and is therefore left unimplemented.
-
-        Parameters
-        ----------
-         x
-            Distribution to push.
-        cond
-            Condition of conditional neural OT.
-
-        Raises
-        ------
-        NotImplementedError
-        """
-        raise NotImplementedError("`pull` does not make sense for neural OT.")
-
-    def _apply(self, x: ArrayLike, forward: bool, cond: Optional[ArrayLike] = None) -> ArrayLike:
-        if not forward:
-            raise NotImplementedError("Backward i.e., pull on neural OT is not supported.")
+    def _apply_forward(self, x: ArrayLike, cond: Optional[ArrayLike] = None) -> ArrayLike:
         return self._model.transport(x, condition=cond)
 
     @property
@@ -445,7 +422,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
     def to(
         self,
         device: Optional[Device_t] = None,
-    ) -> "OTTNeuralOutput":
+    ) -> "NeuralOutput":
         """Transfer the output to another device or change its data type.
 
         Parameters
@@ -471,7 +448,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
         #         raise IndexError(f"Unable to fetch the device with `id={idx}`.") from err
 
         # out = jax.device_put(self._model, device)
-        # return OTTNeuralOutput(out)
+        # return NeuralOutput(out)
         return self  # TODO(ilan-gold) move model to device
 
     @property
