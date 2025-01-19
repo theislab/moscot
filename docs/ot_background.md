@@ -100,4 +100,4 @@ $\tau = \frac{\lambda}{\lambda + \varepsilon} \in [0,1]$
 
 such that $\tau_a=\tau_b=1$ corresponds to the balanced setting, while a smaller $\tau$ allows for more deviation from the initial distribution. For the {term}`quadratic problem`, the objective is adapted analogously.
 
-Now you are set to explore use cases in our {doc}`tutorials <notebooks/tutorials>`.
+Now you are set to explore use cases in our {doc}`/notebooks/tutorials/index`.
