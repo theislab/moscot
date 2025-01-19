@@ -1,16 +1,15 @@
 User API
 ########
 
-.. module:: moscot
+.. module:: moscot.user
 
 Import :mod:`moscot` as::
 
     import moscot as mt
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
 
-    biological
-    generic
+    problems
     plotting
     datasets

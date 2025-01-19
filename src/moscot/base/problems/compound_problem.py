@@ -492,8 +492,8 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], abc.ABC):
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """Remove a subproblem.
 
-        .. seealso::
-            - See :doc:`../../notebooks/examples/problems/300_adding_and_removing_problems` on how to remove subproblems.
+            - See :doc:`../../notebooks/examples/problems/300_adding_and_removing_problems` on 
+              how to remove subproblems.
 
         Parameters
         ----------

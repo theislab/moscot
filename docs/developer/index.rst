@@ -1,10 +1,10 @@
 Developer API
 #############
 
-.. module:: moscot
+.. module:: moscot.dev
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
 
     backends
     costs
