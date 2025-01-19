@@ -85,7 +85,7 @@ we can add a penalty for the amount of mass variation using Kullback-Leibler div
 \end{align*}
 ```
 
-In the {term}`linear problem`, this results in a minimisation between approximate measures
+In the {term}`linear problem`, this results in the minimisation
 
 ```{math}
 \begin{align*}
@@ -100,4 +100,4 @@ $\tau = \frac{\lambda}{\lambda + \varepsilon} \in [0,1]$
 
 such that $\tau_a=\tau_b=1$ corresponds to the balanced setting, while a smaller $\tau$ allows for more deviation from the initial distribution. For the {term}`quadratic problem`, the objective is adapted analogously.
 
-Please see {doc}`Trajectory inference <notebooks/tutorials/200_temporal_problem>` for a use case of {term}`unbalanced OT problem`.
+Now you are set to explore use cases in our {doc}`tutorials <notebooks/tutorials>`.
