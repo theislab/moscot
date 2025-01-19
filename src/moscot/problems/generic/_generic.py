@@ -61,7 +61,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         r"""Prepare the individual :term:`linear subproblems <linear problem>`.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/problems/200_custom_cost_matrices` on how to pass custom cost matrices.
+            - See :doc:`../../notebooks/examples/problems/200_custom_cost_matrices` on how to pass custom cost matrices.
             - TODO(michalk8): add an example that shows how to pass different costs (with kwargs).
 
         Parameters
@@ -167,9 +167,9 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         using the :term:`Sinkhorn` algorithm :cite:`cuturi:2013`.
 
         .. seealso:
-            - See :doc:`../notebooks/examples/solvers/100_linear_problem_basic` on how to specify
+            - See :doc:`../../notebooks/examples/solvers/100_linear_problem_basic` on how to specify
               the most important parameters.
-            - See :doc:`../notebooks/examples/solvers/200_linear_problems_advanced` on how to specify
+            - See :doc:`../../notebooks/examples/solvers/200_linear_problems_advanced` on how to specify
               additional parameters, such as the ``initializer``.
 
         Parameters
@@ -410,9 +410,9 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         r"""Solve the individual :term:`quadratic subproblems <quadratic problem>`.
 
         .. seealso:
-            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic` on how to specify
+            - See :doc:`../../notebooks/examples/solvers/300_quad_problems_basic` on how to specify
               the most important parameters.
-            - See :doc:`../notebooks/examples/solvers/400_quad_problems_advanced` on how to specify
+            - See :doc:`../../notebooks/examples/solvers/400_quad_problems_advanced` on how to specify
               additional parameters, such as the ``initializer``.
 
         Parameters
@@ -679,9 +679,9 @@ class FGWProblem(GWProblem[K, B]):
         r"""Solve the individual :term:`quadratic subproblems <quadratic problem>`.
 
         .. seealso:
-            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic` on how to specify
+            - See :doc:`../../notebooks/examples/solvers/300_quad_problems_basic` on how to specify
               the most important parameters.
-            - See :doc:`../notebooks/examples/solvers/400_quad_problems_advanced` on how to specify
+            - See :doc:`../../notebooks/examples/solvers/400_quad_problems_advanced` on how to specify
               additional parameters, such as the ``initializer``.
 
         Parameters

@@ -52,7 +52,7 @@ Important resources
         Learn how to install :mod:`moscot`.
 
     .. grid-item-card:: User API
-        :link: user
+        :link: user/index
         :link-type: doc
 
         Find a detailed documentation of :mod:`moscot`.
@@ -85,12 +85,12 @@ Important resources
 
     installation
     user_guide
-    user
-    developer
+    user/index
+    developer/index
     ot_background
-    contributing
     notebooks/tutorials/index
     notebooks/examples/index
+    contributing
     references
 
 

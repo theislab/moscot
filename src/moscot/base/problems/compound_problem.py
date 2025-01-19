@@ -214,7 +214,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], abc.ABC):
         """Prepare the individual :term:`OT` subproblems.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
+            - See :doc:`../../notebooks/examples/problems/400_subset_policy` on how to use different policies.
 
         Parameters
         ----------
@@ -319,9 +319,9 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], abc.ABC):
         """Solve the individual :term:`OT` subproblems.
 
         .. seealso:
-            - See :doc:`../notebooks/examples/solvers/100_linear_problems_basic`
+            - See :doc:`../../notebooks/examples/solvers/100_linear_problems_basic`
             for an introduction on how to solve linear problems.
-            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic`
+            - See :doc:`../../notebooks/examples/solvers/300_quad_problems_basic`
             for an introduction on how to solve quadratic problems.
 
         Parameters
@@ -464,7 +464,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], abc.ABC):
         """Add a subproblem.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/problems/300_adding_and_removing_problems` on how to add subproblems.
+            - See :doc:`../../notebooks/examples/problems/300_adding_and_removing_problems` on how to add subproblems.
 
         Parameters
         ----------
@@ -492,8 +492,8 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], abc.ABC):
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """Remove a subproblem.
 
-        .. seealso::
-            - See :doc:`../notebooks/examples/problems/300_adding_and_removing_problems` on how to remove subproblems.
+            - See :doc:`../../notebooks/examples/problems/300_adding_and_removing_problems` on
+              how to remove subproblems.
 
         Parameters
         ----------

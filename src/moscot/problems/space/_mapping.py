@@ -96,7 +96,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         """Prepare the mapping problem problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/400_spatial_mapping` on how to
+            - See :doc:`../../notebooks/tutorials/400_spatial_mapping` on how to
               prepare and solve the :class:`~moscot.problems.space.MappingProblem`.
 
         Parameters
@@ -255,7 +255,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         r"""Solve the mapping problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/400_spatial_mapping` on how to
+            - See :doc:`../../notebooks/tutorials/400_spatial_mapping` on how to
               prepare and solve the :class:`~moscot.problems.space.MappingProblem`.
 
         Parameters

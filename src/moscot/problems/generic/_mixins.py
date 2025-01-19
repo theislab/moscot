@@ -33,7 +33,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         """Aggregate the transport matrix.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+            - See :doc:`../../notebooks/examples/plotting/200_cell_transitions`
               on how to compute and plot the cell transitions.
 
         Parameters

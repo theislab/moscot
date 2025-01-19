@@ -34,7 +34,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B], AbstractSrcTgt):
         """Translate the source modality to the target modality.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to translate
+            - See :doc:`../../notebooks/tutorials/600_tutorial_translation` on how to translate
               `chromatic accessibility <https://en.wikipedia.org/wiki/ATAC-seq>`_ to
               `gene expression <https://en.wikipedia.org/wiki/Single-cell_sequencing>`_.
 
@@ -110,7 +110,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B], AbstractSrcTgt):
         This function computes a transition matrix with entries corresponding to categories, e.g., cell types.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+            - See :doc:`../../notebooks/examples/plotting/200_cell_transitions`
               on how to compute and plot the cell transitions.
 
         Parameters

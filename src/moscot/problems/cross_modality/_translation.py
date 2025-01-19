@@ -92,7 +92,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         """Prepare the translation problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to prepare the translation problem.
+            - See :doc:`../../notebooks/tutorials/600_tutorial_translation` on how to prepare the translation problem.
 
         Parameters
         ----------
@@ -231,7 +231,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         r"""Solve the translation problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to
+            - See :doc:`../../notebooks/tutorials/600_tutorial_translation` on how to
               solve the :class:`~moscot.problems.cross_modality.TranslationProblem`.
 
         Parameters
