@@ -14,6 +14,14 @@ The regularized {term}`linear problem` reads:
 
 where $\varepsilon$ is the {term}`entropic regularization`, and $\mathbf{H(P) \overset{\mathrm{def.}}{=} - \sum_\mathnormal{i,j} P_\mathnormal{i,j} \left( \log (P_\mathnormal{i,j}) - 1 \right)}$ is the discrete entropy of a coupling matrix.
 
+:::{figure} figures/Kantorovich_couplings_sol.jpeg
+:align: center
+:alt: Kantorovich couplings.
+:class: img-fluid
+
+Continuous and discrete couplings between measures $\alpha, \beta$. Figure from {cite}`peyre:19`.
+:::
+
 ## Gromov-Wasserstein (GW)
 
 When the data points (e.g. cells) from source and target distributions lie in different metric spaces,
@@ -69,14 +77,25 @@ and $\alpha \in [0,1]$ is the tradeoff between the feature and the structure cos
 ## Unbalanced OT
 
 In cases that require allowing to ignore any outliers or skip points that don’t have a satisfactory mapping,
-we can add a penalty for the amount of mass variation using some divergence $D_{\varphi}$
+we can add a penalty for the amount of mass variation using  Kullback-Leibler divergence defined as
+
+```{math}
+\begin{align*}
+    \mathrm{KL}\mathbf{(P|K) \overset{\mathrm{def.}}{=} \sum_\mathnormal{i,j} P_\mathnormal{i,j} \log \left( \frac{P_\mathnormal{i,j}}{K_\mathnormal{i,j}} \right) - P_\mathnormal{i,j} + K_\mathnormal{i,j}}
+\end{align*}
+```
+
 and get the minimization of an OT distance between approximate measures
 
 ```{math}
 \begin{align*}
-   \mathbf{L_C^{\tau}(a,b) =  \min_{\tilde{a},\tilde{b}}  L_C(a,b) + \tau_1 D_{\varphi}(a,\tilde{a}) + \tau_2 D_{\varphi}(b,\tilde{b})} \\
-   \mathbf{= \min_{P\in \mathbb{R}_+^\mathnormal{n\times m}} \left\langle C,P \right\rangle + \tau_1 D_{\varphi}(P\mathbb{1}_\mathnormal{m}|a) + \tau_2 D_{\varphi}(P^\top\mathbb{1}_\mathnormal{m}|b)}
+   \mathbf{L_C^{\lambda}(a,b) =  \min_{\tilde{a},\tilde{b}}  L_C(a,b) + \lambda_1 KL(a,\tilde{a}) + \lambda_2 KL(b,\tilde{b})} \\
+   \mathbf{= \min_{P\in \mathbb{R}_+^\mathnormal{n\times m}} \left\langle C,P \right\rangle + \lambda_1 KL(P\mathbb{1}_\mathnormal{m}|a) + \lambda_2 KL(P^\top\mathbb{1}_\mathnormal{m}|b)}
 \end{align*}
 ```
 
-where $(\tau_1, \tau_2)$ controls how much mass variations are penalized as opposed to transportation of the mass.
+where $(\lambda_1, \lambda_2)$ controls how much mass variations are penalized as opposed to transportation of the mass.
+
+$\tau = \frac{\lambda}{\lambda + \varepsilon}$
+
+Please see {doc}`Trajectory inference <notebooks/tutorials/200_temporal_problem>` for a use case of {term}`unbalanced OT problem`.
