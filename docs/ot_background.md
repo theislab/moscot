@@ -77,7 +77,7 @@ and $\alpha \in [0,1]$ is the tradeoff between the feature and the structure cos
 ## Unbalanced OT
 
 In cases that require allowing to ignore any outliers or skip points that don’t have a satisfactory mapping,
-we can add a penalty for the amount of mass variation using  Kullback-Leibler divergence defined as
+we can add a penalty for the amount of mass variation using Kullback-Leibler divergence defined as
 
 ```{math}
 \begin{align*}
