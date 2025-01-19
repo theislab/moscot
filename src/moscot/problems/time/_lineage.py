@@ -64,7 +64,7 @@ class TemporalProblem(
         """Prepare the temporal problem problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/200_temporal_problem` on how to
+            - See :doc:`../../notebooks/tutorials/200_temporal_problem` on how to
               prepare and solve the :class:`~moscot.problems.time.TemporalProblem`.
 
         Parameters
@@ -193,7 +193,7 @@ class TemporalProblem(
         r"""Solve the temporal problem.
 
         .. seealso:
-            - See :doc:`../notebooks/tutorials/200_temporal_problem` on how to
+            - See :doc:`../../notebooks/tutorials/200_temporal_problem` on how to
               prepare and solve the :class:`~moscot.problems.time.TemporalProblem`.
 
         Parameters
@@ -316,7 +316,7 @@ class LineageProblem(TemporalProblem):
         """Prepare the lineage problem problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/100_lineage` on how to
+            - See :doc:`../../notebooks/tutorials/100_lineage` on how to
               prepare and solve the :class:`~moscot.problems.time.LineageProblem`.
 
         Parameters
@@ -463,7 +463,7 @@ class LineageProblem(TemporalProblem):
         r"""Solve the lineage problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/100_lineage` on how to
+            - See :doc:`../../notebooks/tutorials/100_lineage` on how to
               prepare and solve the :class:`~moscot.problems.time.LineageProblem`.
 
         Parameters
