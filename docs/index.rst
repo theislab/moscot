@@ -87,9 +87,10 @@ Important resources
     user_guide
     user/index
     developer/index
-    contributing
+    ot_background
     notebooks/tutorials/index
     notebooks/examples/index
+    contributing
     references
 
 
