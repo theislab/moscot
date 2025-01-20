@@ -163,7 +163,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         """Aggregate the transport matrix.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+            - See :doc:`../../notebooks/examples/plotting/200_cell_transitions` on how to
               compute and plot the cell transitions.
 
         Parameters
@@ -577,7 +577,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B], AbstractSpSc):
         """Aggregate the transport matrix.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+            - See :doc:`../../notebooks/examples/plotting/200_cell_transitions`
               on how to compute and plot the cell transitions.
 
         Parameters

@@ -43,7 +43,7 @@ class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
         """Aggregate the transport matrix.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+            - See :doc:`../../notebooks/examples/plotting/200_cell_transitions` on how to
               compute and :func:`plot <moscot.plotting.cell_transition>` the cell transitions.
 
         Parameters
@@ -177,7 +177,7 @@ class TemporalMixin(AnalysisMixin[K, B], AbstractSolutionsProblems):
         """Compute a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
+            - See :doc:`../../notebooks/examples/plotting/300_sankey` on how to
               compute and :func:`plot <moscot.plotting.sankey>` the Sankey diagram.
 
         Parameters

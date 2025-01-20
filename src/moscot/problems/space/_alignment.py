@@ -59,7 +59,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         """Prepare the alignment problem problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/300_spatial_alignment` on how to
+            - See :doc:`../../notebooks/tutorials/300_spatial_alignment` on how to
               prepare and solve the :class:`~moscot.problems.space.AlignmentProblem`.
 
         Parameters
@@ -211,7 +211,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         r"""Solve the alignment problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/300_spatial_alignment` on how to
+            - See :doc:`../../notebooks/tutorials/300_spatial_alignment` on how to
               prepare and solve the :class:`~moscot.problems.space.AlignmentProblem`.
 
         Parameters

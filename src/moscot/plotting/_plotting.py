@@ -54,7 +54,7 @@ def cell_transition(
     """Plot an aggregate cell transition matrix.
 
     .. seealso::
-        - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+        - See :doc:`../../notebooks/examples/plotting/200_cell_transitions` on how to
           :meth:`compute <moscot.problems.time.TemporalProblem.cell_transition>` and plot the cell transitions.
 
     Parameters
@@ -144,7 +144,7 @@ def sankey(
     """Plot a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
 
     .. seealso::
-        - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
+        - See :doc:`../../notebooks/examples/plotting/300_sankey` on how to
           :meth:`compute <moscot.problems.time.TemporalProblem.sankey>` and plot the Sankey diagram.
 
     Parameters
@@ -234,7 +234,7 @@ def push(
     """Plot the push-forward distribution.
 
     .. seealso::
-        - See :doc:`../notebooks/examples/plotting/100_push_pull` on how to
+        - See :doc:`../../notebooks/examples/plotting/100_push_pull` on how to
           :meth:`compute <moscot.base.problems.CompoundProblem.push>` and plot the push-forward distribution.
 
     Parameters
@@ -342,7 +342,7 @@ def pull(
     """Plot the pull-back distribution.
 
     .. seealso::
-        - See :doc:`../notebooks/examples/plotting/100_push_pull` on how to
+        - See :doc:`../../notebooks/examples/plotting/100_push_pull` on how to
           :meth:`compute <moscot.base.problems.CompoundProblem.pull>` and plot the pull-back distribution.
 
     Parameters
