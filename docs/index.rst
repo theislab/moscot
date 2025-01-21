@@ -9,7 +9,7 @@ Moscot - Multiomics Single-cell Optimal Transport
     :align: center
     :class: only-light
 
-.. image:: _static/img/dark_mode_concept.png
+.. image:: _static/img/dark_mode_concept_revised.png
     :width: 800px
     :align: center
     :class: only-dark
