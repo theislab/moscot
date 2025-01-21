@@ -34,6 +34,7 @@ Getting started
 - Take a look at our :doc:`tutorials <notebooks/tutorials/index>` to learn how to use :mod:`moscot` for data analysis.
 - For more technical examples and specific use cases, check out the :doc:`examples <notebooks/examples/index>` section.
 - To see :mod:`moscot` in action, read our `Klein et al., 2023`_ manuscript.
+- For a high-level introduction of moscot, check out our `research briefing <https://doi.org/10.1038/d41586-025-00107-1>`_.
 
 Citing moscot
 -------------
