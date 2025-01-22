@@ -282,7 +282,7 @@ def pancreas_multiome(
     force_download: bool = True,
     **kwargs: Any,
 ) -> Union[mu.MuData, ad.AnnData]:  # pragma: no cover
-    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`klein:23`.
+    """Pancreatic endocrinogenesis dataset published with the moscot manuscript :cite:`klein:25`.
 
     The dataset contains paired scRNA-seq and scATAC-seq data of pancreatic cells at embryonic days 14.5, 15.5, and
     16.5. The data was preprocessed and filtered as described in the manuscript, the raw data and the full processed
