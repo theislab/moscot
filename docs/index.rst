@@ -33,12 +33,12 @@ Getting started
 - Read the :doc:`user guide <user_guide>` to get a high-level overview of :mod:`moscot`.
 - Take a look at our :doc:`tutorials <notebooks/tutorials/index>` to learn how to use :mod:`moscot` for data analysis.
 - For more technical examples and specific use cases, check out the :doc:`examples <notebooks/examples/index>` section.
-- To see :mod:`moscot` in action, read our `Klein et al., 2023`_ manuscript.
+- To see :mod:`moscot` in action, read our `Klein et al., 2025`_ manuscript.
 - For a high-level introduction of moscot, check out our `research briefing <https://doi.org/10.1038/d41586-025-00107-1>`_.
 
 Citing moscot
 -------------
-If you find a model useful for your research, please consider citing the `Klein et al., 2023`_ manuscript as
+If you find a model useful for your research, please consider citing the `Klein et al., 2025`_ manuscript as
 well as the publication introducing the model, which can be found in the corresponding documentation.
 
 Important resources
@@ -78,7 +78,7 @@ Important resources
 
     .. grid-item-card:: Manuscript
 
-        Please have a look at `Klein et al., 2023`_ to learn more.
+        Please have a look at `Klein et al., 2025`_ to learn more.
 
 .. toctree::
     :maxdepth: 2
@@ -119,4 +119,4 @@ Important resources
     :target: https://pepy.tech/project/moscot
     :alt: Downloads
 
-.. _Klein et al., 2023: https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2
+.. _Klein et al., 2025: https://www.nature.com/articles/s41586-024-08453-2
