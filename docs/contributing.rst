@@ -141,4 +141,3 @@ Before submitting a new pull request, please make sure you followed these instru
 - if there is no issue which this PR solves, create a new `one <https://github.com/theislab/moscot/issues/new>`_
   briefly explaining what the problem is.
 - make sure that the section under ``## Description`` is properly formatted if automatically generating release notes.
-
