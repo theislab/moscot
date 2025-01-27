@@ -3,12 +3,12 @@
 Moscot - Multiomics Single-cell Optimal Transport
 =======================================================
 
-.. image:: _static/img/light_mode_concept_revised.png
+.. image:: docs/_static/img/light_mode_concept_revised.png
     :width: 800px
     :align: center
     :class: only-light
 
-.. image:: _static/img/dark_mode_concept_revised.png
+.. image:: docs/_static/img/dark_mode_concept_revised.png
     :width: 800px
     :align: center
     :class: only-dark
@@ -20,14 +20,12 @@ variety of applications across different modalities.
 
 moscot's key applications
 ---------------------------
-- :doc:`Trajectory inference <notebooks/tutorials/200_temporal_problem>`
-  (incorporating :doc:`spatial <notebooks/tutorials/500_spatiotemporal>`
-  and :doc:`lineage <notebooks/tutorials/100_lineage>` information).
-- :doc:`Mapping <notebooks/tutorials/400_spatial_mapping>` cells to their spatial organisation.
-- :doc:`Aligning <notebooks/tutorials/300_spatial_alignment>` spatial transcriptomics slides.
-- :doc:`Translating <notebooks/tutorials/600_tutorial_translation>` modalities.
+- Trajectory inference (incorporating spatial and lineage information).
+- Mapping cells to their spatial organisation.
+- Aligning spatial transcriptomics slides.
+- Translating modalities.
 - prototyping of new OT models in single-cell genomics.
-- ... and more, check out the :doc:`user guide <user_guide>` for more information.
+- ... and more, check out the `documentation <https://moscot.readthedocs.io>`_ for more information.
 
 
 **moscot** is powered by
@@ -48,11 +46,6 @@ In order to install **moscot** from in editable mode, run::
     pip install -e .
 
 For further instructions how to install jax, please refer to https://github.com/google/jax.
-
-Resources
----------
-
-Please have a look at our `documentation <https://moscot.readthedocs.io>`_
 
 Citing moscot
 -------------
