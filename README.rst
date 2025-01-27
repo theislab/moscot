@@ -75,3 +75,5 @@ well as the publication introducing the model, which can be found in the corresp
 .. |Downloads| image:: https://static.pepy.tech/badge/moscot
     :target: https://pepy.tech/project/moscot
     :alt: Downloads
+
+.. _Klein et al., 2025: https://www.nature.com/articles/s41586-024-08453-2
