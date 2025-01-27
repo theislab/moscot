@@ -9,8 +9,6 @@ Table of Contents
 - `Testing`_
 - `Writing documentation`_
 - `Writing tutorials/examples`_
-- `Making a new release`_
-- `Creating release notes`_
 - `Submitting a PR`_
 
 Contributing to moscot
