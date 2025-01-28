@@ -1,16 +1,32 @@
 |PyPI| |Downloads| |CI| |Pre-commit| |Codecov| |Docs|
 
-moscot - multi-omic single-cell optimal transport tools
+Moscot - Multiomics Single-cell Optimal Transport
 =======================================================
 
-**moscot** is a scalable framework for Optimal Transport (OT) applications in
-single-cell genomics. It can be used for
+.. image:: docs/_static/img/light_mode_concept_revised.png
+    :width: 800px
+    :align: center
+    :class: only-light
 
-- trajectory inference (incorporating spatial and lineage information)
-- mapping cells to their spatial organisation
-- aligning spatial transcriptomics slides
-- translating modalities
-- prototyping of new OT models in single-cell genomics
+.. image:: docs/_static/img/dark_mode_concept_revised.png
+    :width: 800px
+    :align: center
+    :class: only-dark
+
+
+**moscot** is a framework for Optimal Transport (OT) applications in
+single-cell genomics. It scales to large datasets and can be used for a
+variety of applications across different modalities.
+
+moscot's key applications
+---------------------------
+- Trajectory inference (incorporating spatial and lineage information).
+- Mapping cells to their spatial organisation.
+- Aligning spatial transcriptomics slides.
+- Translating modalities.
+- prototyping of new OT models in single-cell genomics.
+- ... and more, check out the `documentation <https://moscot.readthedocs.io>`_ for more information.
+
 
 **moscot** is powered by
 `OTT <https://ott-jax.readthedocs.io>`_ which is a JAX-based Optimal
@@ -19,7 +35,7 @@ differentiation and linear memory complexity for OT problems.
 
 Installation
 ------------
-You can install **moscot** via::
+Install :mod:`moscot` by running::
 
     pip install moscot
 
@@ -31,15 +47,10 @@ In order to install **moscot** from in editable mode, run::
 
 For further instructions how to install jax, please refer to https://github.com/google/jax.
 
-Resources
----------
-
-Please have a look at our `documentation <https://moscot.readthedocs.io>`_
-
-Reference
----------
-
-Our preprint "Mapping cells through time and space with moscot" can be found `here <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v1>`_.
+Citing moscot
+-------------
+If you find a model useful for your research, please consider citing the `Klein et al., 2025`_ manuscript as
+well as the publication introducing the model, which can be found in the corresponding documentation.
 
 .. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/master/graph/badge.svg?token=Rgtm5Tsblo
     :target: https://codecov.io/gh/theislab/moscot
@@ -64,3 +75,5 @@ Our preprint "Mapping cells through time and space with moscot" can be found `he
 .. |Downloads| image:: https://static.pepy.tech/badge/moscot
     :target: https://pepy.tech/project/moscot
     :alt: Downloads
+
+.. _Klein et al., 2025: https://www.nature.com/articles/s41586-024-08453-2

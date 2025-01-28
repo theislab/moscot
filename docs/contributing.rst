@@ -9,8 +9,6 @@ Table of Contents
 - `Testing`_
 - `Writing documentation`_
 - `Writing tutorials/examples`_
-- `Making a new release`_
-- `Creating release notes`_
 - `Submitting a PR`_
 
 Contributing to moscot
@@ -81,7 +79,7 @@ Testing
 -------
 We use ``tox`` to automate our testing, as well as linting and documentation creation. To run the tests, run::
 
-    tox -e py{38,39,310,311}-{linux,macos}
+    tox -e py{310,311}-{linux,macos}
 
 depending on the Python version(s) in your ``PATH`` and your operating system. We use ``flake8`` and ``mypy`` to further
 analyze the code. Use ``# noqa: <error1>,<error2>`` to ignore certain ``flake8`` errors and
@@ -94,7 +92,7 @@ To run only a subset of tests, run::
 where ``<name>`` can be a path to a test file/directory or a name of a test function/class.
 For example, to run only the tests in the ``plotting`` module, use::
 
-    tox -e py39-linux -- tests/plotting/test_plotting.py
+    tox -e py310-linux -- tests/plotting/test_plotting.py
 
 If needed, a specific ``tox`` environment can be recreated as::
 
@@ -142,13 +140,4 @@ Before submitting a new pull request, please make sure you followed these instru
 - make sure that all tests pass locally (see `Testing`_).
 - if there is no issue which this PR solves, create a new `one <https://github.com/theislab/moscot/issues/new>`_
   briefly explaining what the problem is.
-- make sure that the section under ``## Description`` is properly formatted if automatically generating release notes,
-  see also `Creating release notes`_.
-
-Making a new release
---------------------
-TODO
-
-Creating release notes
-----------------------
-TODO
+- make sure that the section under ``## Description`` is properly formatted if automatically generating release notes.

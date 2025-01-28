@@ -15,7 +15,7 @@ Moscot - Multiomics Single-cell Optimal Transport
     :class: only-dark
 
 :mod:`moscot` is a framework for Optimal Transport (OT) applications in
-single-cell genomics. It scales to large datsets and can be used for a
+single-cell genomics. It scales to large datasets and can be used for a
 variety of applications across different modalities.
 
 Key applications
