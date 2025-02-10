@@ -358,7 +358,7 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
 
 
 def _input_to_adatas(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"]  # type: ignore[type-arg]
+    inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
 ) -> Tuple[AnnData, AnnData]:
     from moscot.base.problems import CompoundProblem
 
