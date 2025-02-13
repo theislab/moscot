@@ -276,7 +276,7 @@ env_list = lint-code,py{3.10,3.11,3.12}
 skip_missing_interpreters = true
 
 [testenv]
-extras = test
+extras = test,neural
 commands =
     python -m pytest {tty:--color=yes} {posargs: \
         --cov={env_site_packages_dir}{/}moscot --cov-config={tox_root}{/}pyproject.toml \
@@ -292,7 +292,7 @@ commands =
 
 [testenv:lint-docs]
 description = Lint the documentation.
-extras = docs
+extras = docs,neural
 ignore_errors = true
 allowlist_externals = make
 pass_env = PYENCHANT_LIBRARY_PATH
@@ -312,7 +312,7 @@ deps =
     jupytext
     nbconvert
     leidenalg
-extras = docs
+extras = docs,neural
 changedir = {tox_root}{/}docs
 commands =
     python -m ipykernel install --user --name=moscot
@@ -330,7 +330,7 @@ commands =
 [testenv:build-docs]
 description = Build the documentation.
 deps =
-extras = docs
+extras = docs,neural
 allowlist_externals = make
 changedir = {tox_root}{/}docs
 commands =
