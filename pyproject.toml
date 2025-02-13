@@ -83,6 +83,7 @@ test = [
     "pytest-mock>=3.5.0",
     "pytest-cov>=4",
     "coverage[toml]>=7",
+    "moscot[neural]"
 ]
 docs = [
     "sphinx>=5.1.1",
