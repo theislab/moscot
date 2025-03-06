@@ -41,7 +41,7 @@ class TagConverter:  # noqa: D101
         **kwargs: Any,
     ) -> TaggedArrayData:
         def to_tuple(
-            data: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]]
+            data: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]],
         ) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
             if not isinstance(data, tuple):
                 return data, None
