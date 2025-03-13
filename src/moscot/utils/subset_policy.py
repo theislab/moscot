@@ -314,7 +314,7 @@ class SimplePlanPolicy(SubsetPolicy[K], abc.ABC):
         return list(self._graph)
 
 
-class StarPolicy(SimplePlanPolicy[K]):
+class StarPolicy(OrderedPolicy[K]):
     r"""Policy with a star topology.
 
     Parameters
