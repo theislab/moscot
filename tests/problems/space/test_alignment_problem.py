@@ -237,18 +237,21 @@ class TestAlignmentProblem:
             assert getattr(geom, val) == args_to_check[arg]
 
     def test_alignment_order_preservation(self, adata_space_rotate: AnnData):
-        adata_space_rotate.obs["orig_x"] = adata_space_rotate.obsm["spatial"][:, 0]
-        ap = AlignmentProblem(adata=adata_space_rotate)
-        sc.pp.subsample(ap.adata, fraction=0.99)
+        sc.pp.subsample(adata_space_rotate, fraction=0.99)
+        ap: AlignmentProblem = AlignmentProblem(adata=adata_space_rotate)
         ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"})
         ap = ap.solve(alpha=0.5, epsilon=1, rank=10)
         ap.align(key_added="spatial_warped", mode="warp", reference="0")
 
+        threshold = 0.7
         batch = "0"
         mask = ap.adata.obs["batch"] == batch
         aligned_x = ap.adata.obsm["spatial_warped"][mask, 0]
         rank_aligned_x = np.argsort(aligned_x)
-        original_x = ap.adata.obs.loc[mask, "orig_x"].values
+        original_x = ap.adata.obsm["spatial"][mask, 0]
         rank_original_x = np.argsort(original_x)
         corr = np.corrcoef(rank_original_x, rank_aligned_x)[0, 1]
-        assert corr >= 0.7, f"Alignment similarity is too low: correlation={corr}"
+        assert corr >= threshold, (
+            f"Alignment similarity is too low: correlation={corr}"
+            f"threshold={threshold}, there might be a bug in the alignment order preservation"
+        )

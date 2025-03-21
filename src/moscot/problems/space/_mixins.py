@@ -160,6 +160,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             self.adata.uns.setdefault(key_added, {})
             self.adata.uns[key_added]["alignment_metadata"] = aligned_metadata
 
+        return None
+
     def cell_transition(
         self,
         source: K,
