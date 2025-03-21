@@ -1,14 +1,13 @@
 from pathlib import Path
 from typing import Any, Callable, Literal, Mapping, Optional
 
-import pytest
-
 import numpy as np
 import pandas as pd
-import scipy.sparse as sp
-
+import pytest
 import scanpy as sc
+import scipy.sparse as sp
 from anndata import AnnData
+from scipy.spatial.distance import pdist, squareform
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import AlignmentProblem
@@ -239,16 +238,27 @@ class TestAlignmentProblem:
     @pytest.mark.parametrize("policy_and_reference", [("star", "0"), ("star", "1"), ("sequential", "0")])
     def test_alignment_order_preservation(self, adata_space_rotate: AnnData, policy_and_reference):
         policy, reference = policy_and_reference
+        threshold = 0.6
         sc.pp.subsample(adata_space_rotate, fraction=0.99)
         ap: AlignmentProblem = AlignmentProblem(adata=adata_space_rotate)
-        ap = ap.prepare(batch_key="batch", policy=policy, reference=reference)
-        ap = ap.solve(max_iterations=2)
-        ap.align(key_added="spatial_warped", mode="warp", reference=reference)
+        ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"}, policy=policy, reference=reference)
 
-        batch = reference
-        mask = ap.adata.obs["batch"] == batch
-        aligned_x = ap.adata.obsm["spatial_warped"][mask, 0]
-        rank_aligned_x = np.argsort(aligned_x)
-        original_x = ap.adata.obsm["spatial"][mask, 0]
-        rank_original_x = np.argsort(original_x)
-        np.testing.assert_array_equal(rank_aligned_x, rank_original_x)
+        ap = ap.solve(alpha=0.5, epsilon=1, rank=-1)
+        assert np.all([sol.converged for sol in ap.solutions.values()])
+
+        ap.align(key_added="spatial_warped", mode="warp", reference=reference)
+        for batch in adata_space_rotate.obs["batch"].unique():
+            mask = adata_space_rotate.obs["batch"] == batch
+            aligned_coords = adata_space_rotate.obsm["spatial_warped"][mask]
+            original_coords = adata_space_rotate.obsm["spatial"][mask]
+            original_dist = squareform(pdist(original_coords)).ravel()
+            aligned_dist = squareform(pdist(aligned_coords)).ravel()
+
+            distance_correlation = np.corrcoef(original_dist, aligned_dist)[0, 1]
+            assert distance_correlation > threshold, f"Batch {batch}, distance correlation: {distance_correlation}"
+            if reference == batch:
+                assert distance_correlation == 1.0, (
+                    f"The reference batch {batch} should not be warped, correlation: {distance_correlation}"
+                )
+            else:
+                assert distance_correlation < 1.0, f"Batch {batch}, distance correlation: {distance_correlation}"
