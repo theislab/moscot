@@ -1,13 +1,15 @@
 from pathlib import Path
 from typing import Any, Callable, Literal, Mapping, Optional
 
+import pytest
+
 import numpy as np
 import pandas as pd
-import pytest
-import scanpy as sc
 import scipy.sparse as sp
-from anndata import AnnData
 from scipy.spatial.distance import pdist, squareform
+
+import scanpy as sc
+from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import AlignmentProblem
@@ -257,8 +259,8 @@ class TestAlignmentProblem:
             distance_correlation = np.corrcoef(original_dist, aligned_dist)[0, 1]
             assert distance_correlation > threshold, f"Batch {batch}, distance correlation: {distance_correlation}"
             if reference == batch:
-                assert distance_correlation == 1.0, (
-                    f"The reference batch {batch} should not be warped, correlation: {distance_correlation}"
-                )
+                assert (
+                    distance_correlation == 1.0
+                ), f"The reference batch {batch} should not be warped, correlation: {distance_correlation}"
             else:
                 assert distance_correlation < 1.0, f"Batch {batch}, distance correlation: {distance_correlation}"
