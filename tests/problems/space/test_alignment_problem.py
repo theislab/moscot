@@ -235,3 +235,20 @@ class TestAlignmentProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    def test_alignment_order_preservation(self, adata_space_rotate: AnnData):
+        adata_space_rotate.obs["orig_x"] = adata_space_rotate.obsm["spatial"][:, 0]
+        ap = AlignmentProblem(adata=adata_space_rotate)
+        sc.pp.subsample(ap.adata, fraction=0.99)
+        ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"})
+        ap = ap.solve(alpha=0.5, epsilon=1, rank=10)
+        ap.align(key_added="spatial_warped", mode="warp", reference="0")
+
+        batch = "0"
+        mask = ap.adata.obs["batch"] == batch
+        aligned_x = ap.adata.obsm["spatial_warped"][mask, 0]
+        rank_aligned_x = np.argsort(aligned_x)
+        original_x = ap.adata.obs.loc[mask, "orig_x"].values
+        rank_original_x = np.argsort(original_x)
+        corr = np.corrcoef(rank_original_x, rank_aligned_x)[0, 1]
+        assert corr >= 0.7, f"Alignment similarity is too low: correlation={corr}"

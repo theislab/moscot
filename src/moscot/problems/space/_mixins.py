@@ -138,15 +138,27 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         aligned_maps, aligned_metadata = self._interpolate_scheme(
             reference=reference, mode=mode, spatial_key=spatial_key  # type: ignore[arg-type]
         )
-        aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
+
+        batch_categories = self.adata.obs[self._policy.key].cat.categories
+        batch_indices = {}
+        result = np.zeros((self.adata.n_obs, aligned_maps[list(aligned_maps.keys())[0]].shape[1]))
+
+        # Create batch to index mapping
+        for cat in batch_categories:
+            batch_indices[cat] = np.where(self.adata.obs[self._policy.key] == cat)[0]
+
+        # Assign aligned coordinates to the correct positions in result array
+        for cat, indices in batch_indices.items():
+            if cat in aligned_maps:
+                result[indices] = aligned_maps[cat]
 
         if key_added is None:
-            return aligned_basis, aligned_metadata
+            return result, aligned_metadata
 
-        self.adata.obsm[key_added] = aligned_basis
+        self.adata.obsm[key_added] = result
         if mode == "affine":  # noqa: RET503
             self.adata.uns.setdefault(key_added, {})
-            self.adata.uns[key_added]["alignment_metadata"] = aligned_metadata  # noqa: RET503
+            self.adata.uns[key_added]["alignment_metadata"] = aligned_metadata
 
     def cell_transition(
         self,
@@ -399,7 +411,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B], AbstractSpSc):
 
         corrs: Union[Dict[Tuple[K, K], Dict[Any, pd.Series]], Dict[Tuple[K, K], pd.Series]] = {}
         for key, val in self.solutions.items():
-
             # create mask corresponding to the current batch of spatial data
             index_obs = (
                 (self.adata_sp.obs[self._policy.key] == key[0])
