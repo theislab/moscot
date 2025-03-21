@@ -241,20 +241,14 @@ class TestAlignmentProblem:
         policy, reference = policy_and_reference
         sc.pp.subsample(adata_space_rotate, fraction=0.99)
         ap: AlignmentProblem = AlignmentProblem(adata=adata_space_rotate)
-        ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"}, policy=policy, reference=reference)
-        ap = ap.solve(alpha=0.5, epsilon=1, rank=10)
+        ap = ap.prepare(batch_key="batch", policy=policy, reference=reference)
+        ap = ap.solve(max_iterations=2)
         ap.align(key_added="spatial_warped", mode="warp", reference=reference)
 
-        threshold = 0.96
         batch = reference
         mask = ap.adata.obs["batch"] == batch
         aligned_x = ap.adata.obsm["spatial_warped"][mask, 0]
         rank_aligned_x = np.argsort(aligned_x)
         original_x = ap.adata.obsm["spatial"][mask, 0]
         rank_original_x = np.argsort(original_x)
-        corr = np.corrcoef(rank_original_x, rank_aligned_x)[0, 1]
-        print(corr)
-        assert corr >= threshold, (
-            f"Alignment similarity is too low: correlation={corr}"
-            f"threshold={threshold}, there might be a bug in the alignment order preservation"
-        )
+        np.testing.assert_array_equal(rank_aligned_x, rank_original_x)
