@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+from scipy.spatial.distance import pdist, squareform
 
 import scanpy as sc
 from anndata import AnnData
@@ -235,3 +236,31 @@ class TestAlignmentProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    @pytest.mark.parametrize("policy_and_reference", [("star", "0"), ("star", "1"), ("sequential", "0")])
+    def test_alignment_order_preservation(self, adata_space_rotate: AnnData, policy_and_reference):
+        policy, reference = policy_and_reference
+        threshold = 0.6
+        sc.pp.subsample(adata_space_rotate, fraction=0.99)
+        ap: AlignmentProblem = AlignmentProblem(adata=adata_space_rotate)
+        ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"}, policy=policy, reference=reference)
+
+        ap = ap.solve(alpha=0.5, epsilon=1, rank=-1)
+        assert np.all([sol.converged for sol in ap.solutions.values()])
+
+        ap.align(key_added="spatial_warped", mode="warp", reference=reference)
+        for batch in adata_space_rotate.obs["batch"].unique():
+            mask = adata_space_rotate.obs["batch"] == batch
+            aligned_coords = adata_space_rotate.obsm["spatial_warped"][mask]
+            original_coords = adata_space_rotate.obsm["spatial"][mask]
+            original_dist = squareform(pdist(original_coords)).ravel()
+            aligned_dist = squareform(pdist(aligned_coords)).ravel()
+
+            distance_correlation = np.corrcoef(original_dist, aligned_dist)[0, 1]
+            assert distance_correlation > threshold, f"Batch {batch}, distance correlation: {distance_correlation}"
+            if reference == batch:
+                assert np.isclose(
+                    distance_correlation, 1.0, atol=1e-5
+                ), f"The reference batch {batch} should not be warped, correlation: {distance_correlation}"
+            else:
+                assert distance_correlation < 1.0, f"Batch {batch}, distance correlation: {distance_correlation}"
