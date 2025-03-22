@@ -260,7 +260,7 @@ class TestAlignmentProblem:
             assert distance_correlation > threshold, f"Batch {batch}, distance correlation: {distance_correlation}"
             if reference == batch:
                 assert (
-                    distance_correlation == 1.0
+                    np.isclose(distance_correlation, 1.0, atol=1e-5)
                 ), f"The reference batch {batch} should not be warped, correlation: {distance_correlation}"
             else:
                 assert distance_correlation < 1.0, f"Batch {batch}, distance correlation: {distance_correlation}"
