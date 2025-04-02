@@ -147,6 +147,9 @@ linkcheck_ignore = [
     r"https://www.biorxiv.org/content/10.1101/2023.04.14.536867v1",
     r"https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2",
     r"https://www.biorxiv.org/content/early/2022/01/11/2022.01.10.475692",
+    r"https://doi.org/10.1145/2516971.2516977",
+    r"https://doi.org/10.3390/a13090212",
+    r"https://www.mdpi.com/1999-4893/13/9/212",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
