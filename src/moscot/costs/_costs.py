@@ -18,7 +18,7 @@ class BarcodeDistance(BaseCost):
     """Scaled `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_ between barcodes.
 
     .. seealso::
-        - See :doc:`../../notebooks/examples/problems/LineageProblem/700_barcode_distance` on 
+        - See :doc:`../../notebooks/examples/problems/LineageProblem/700_barcode_distance` on
           how to use this cost in the :class:`~moscot.problems.time.LineageProblem`.
 
     Parameters
