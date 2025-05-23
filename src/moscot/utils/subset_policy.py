@@ -348,6 +348,9 @@ class StarPolicy(OrderedPolicy[K]):
             node = (node, self.reference)
         return super().remove_node(node)  # type: ignore[return-value]
 
+    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
+        return list(self._graph)
+
     @property
     def reference(self) -> K:
         """Central node."""

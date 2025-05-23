@@ -272,7 +272,7 @@ max_line_length = 120
 legacy_tox_ini = """
 [tox]
 min_version = 4.0
-env_list = lint-code,py{3.10,3.11,3.12}
+env_list = lint-code,py{3.11,3.12, 3.13}
 skip_missing_interpreters = true
 
 [testenv]
