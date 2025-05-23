@@ -369,7 +369,7 @@ def sciplex(
     """Perturbation dataset published in :cite:`srivatsan:20`.
 
     Transcriptomes of A549, K562, and mCF7 cells exposed to 188 compounds.
-    Data obtained from http://projects.sanderlab.org/scperturb/.
+    Data obtained from :cite:`scperturb:24`.
 
     Parameters
     ----------
