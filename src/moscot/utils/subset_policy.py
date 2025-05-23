@@ -355,7 +355,7 @@ class StarPolicy(OrderedPolicy[K]):
             return list(self._graph)
         if start is not None and end is not None:
             return [(start, end)]
-        raise ValueError("For `StarPolicy`,th start and end node must be `None` or both must be specified.")
+        raise ValueError("For `StarPolicy`, the start and end node must both be `None` or both must be specified.")
 
     @property
     def reference(self) -> K:
