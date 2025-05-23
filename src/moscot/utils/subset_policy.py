@@ -348,6 +348,15 @@ class StarPolicy(OrderedPolicy[K]):
             node = (node, self.reference)
         return super().remove_node(node)  # type: ignore[return-value]
 
+    # def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
+    #    return list(self._graph)
+    def _plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
+        if start is None and end is None:
+            return list(self._graph)
+        if start is not None and end is not None:
+            return [(start, end)]
+        raise ValueError("For `StarPolicy`,th start and end node must be `None` or both must be specified.")
+
     @property
     def reference(self) -> K:
         """Central node."""
