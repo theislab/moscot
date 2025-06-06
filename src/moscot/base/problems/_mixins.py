@@ -394,7 +394,7 @@ class AnalysisMixin(Generic[K, B], AbstractPushPullAdata, AbstractSolutionsProbl
 
     def _interpolate_transport(
         self,
-        # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
+        # TODO(@giovp): rename this to 'explicit_steps'; pass to policy.plan() and reintroduce (source_key, target_key)
         path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
         **_: Any,

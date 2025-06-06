@@ -217,3 +217,15 @@ class TestSinkhornProblem:
 
         recenter_potentials = problem[0, 1].solver.solver.recenter_potentials
         assert recenter_potentials == recenter
+
+    @pytest.mark.parametrize("reference", [0, 1, 2])
+    def test_sinkhorn_problem_star(self, adata_time: AnnData, reference: int):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(key="time", joint_attr="X_pca", policy="star", reference=reference)
+        if reference == 0:
+            expected_policy_graph = {(1, 0), (2, 0)}
+        elif reference == 1:
+            expected_policy_graph = {(0, 1), (2, 1)}
+        else:
+            expected_policy_graph = {(0, 2), (1, 2)}
+        assert set(problem._policy._graph) == expected_policy_graph
