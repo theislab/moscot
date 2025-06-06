@@ -188,7 +188,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
         Examples
         --------
-        - See :doc:`../../notebooks/examples/problems/800_score_genes_for_marginals`
+        - See :doc:`../../notebooks/examples/problems/TemporalProblem/800_score_genes_for_marginals`
             on examples how to use :meth:`~moscot.problems.time.TemporalProblem.score_genes_for_marginals`.
 
         """  # noqa: D205

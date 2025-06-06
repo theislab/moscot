@@ -18,8 +18,8 @@ class BarcodeDistance(BaseCost):
     """Scaled `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_ between barcodes.
 
     .. seealso::
-        - See :doc:`../../notebooks/examples/problems/700_barcode_distance` on how to use this cost
-          in the :class:`~moscot.problems.time.LineageProblem`.
+        - See :doc:`../../notebooks/examples/problems/LineageProblem/700_barcode_distance` on
+          how to use this cost in the :class:`~moscot.problems.time.LineageProblem`.
 
     Parameters
     ----------
@@ -68,7 +68,7 @@ class LeafDistance(BaseCost):
             This class ignores `attr` which is always set to `uns`.
 
     .. seealso::
-        - See :doc:`../../notebooks/examples/problems/600_leaf_distance` on how to use this cost
+        - See :doc:`../../notebooks/examples/problems/LineageProblem/600_leaf_distance` on how to use this cost
           in the :class:`~moscot.problems.time.LineageProblem`.
 
     Parameters

@@ -1,7 +1,5 @@
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-import jaxlib.xla_extension as xla_ext
-
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -209,7 +207,7 @@ class OTTOutput(BaseDiscreteSolverOutput):
         else:
             idx = 0
 
-        if not isinstance(device, xla_ext.Device):
+        if not isinstance(device, jax.Device):
             try:
                 device = jax.devices(device)[idx]
             except IndexError:
@@ -441,7 +439,7 @@ class NeuralOutput(BaseNeuralOutput):
         # else:
         #     idx = 0
 
-        # if not isinstance(device, xla_ext.Device):
+        # if not isinstance(device, jax.Device):
         #     try:
         #         device = jax.devices(device)[idx]
         #     except IndexError as err:
@@ -509,7 +507,7 @@ class GraphOTTOutput(OTTOutput):
         else:
             idx = 0
 
-        if not isinstance(device, xla_ext.Device):
+        if not isinstance(device, jax.Device):
             try:
                 device = jax.devices(device)[idx]
             except IndexError:
