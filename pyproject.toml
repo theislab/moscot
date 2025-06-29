@@ -54,11 +54,16 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
+    "jax>=0.6.1",
     "ott-jax>=0.5.0",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
     "docstring_inheritance>=2.0.0",
-    "mudata>=0.2.2"
+    "mudata>=0.2.2",
+    "optax",
+    "flax",
+    "diffrax",
+    "ott-jax[neural]>=0.5.0"
 ]
 
 [project.optional-dependencies]
@@ -66,13 +71,6 @@ spatial = [
     "squidpy>=1.2.3"
 ]
 
-neural = [
-    "optax",
-    "flax",
-    "diffrax",
-    "ott-jax[neural]>=0.5.0",
-
-]
 dev = [
     "pre-commit>=3.0.0",
     "tox>=4",
