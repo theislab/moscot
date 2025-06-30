@@ -53,7 +53,7 @@ def _handle_mapping_joint_attr(
         }
         return xy, xy_callback, xy_callback_kwargs  # type: ignore[return-value]
 
-    if joint_attr.get("tag", None) == "cost_matrix" and (len(joint_attr) == 2 or joint_attr.get("attr") == "obsp"):
+    if joint_attr.get("tag") == "cost_matrix" and (len(joint_attr) == 2 or joint_attr.get("attr") == "obsp"):
         joint_attr.setdefault("cost", "custom")
         joint_attr.setdefault("attr", "obsp")
         xy_callback = "cost-matrix"
