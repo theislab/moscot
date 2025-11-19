@@ -10,7 +10,7 @@ __all__ = ["get_solver", "register_solver", "get_available_backends"]
 
 register_solver_t = Callable[
     [Literal["linear", "quadratic"]],
-    Union[ott.SinkhornSolver, ott.GWSolver],
+    Union["ott.SinkhornSolver", "ott.GWSolver"],
 ]
 
 
@@ -27,7 +27,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
 
 def register_solver(
     backend: str,
-) -> Union[ott.SinkhornSolver, ott.GWSolver]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver"]:
     """Register a solver for a specific backend.
 
     Parameters
@@ -45,7 +45,7 @@ def register_solver(
 @register_solver("ott")
 def _(
     problem_kind: Literal["linear", "quadratic"],
-) -> Union[ott.SinkhornSolver, ott.GWSolver]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver"]:
     from moscot.backends import ott
 
     if problem_kind == "linear":
