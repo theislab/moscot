@@ -10,7 +10,6 @@ import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.initializers.linear import initializers as init_lib
 from ott.initializers.linear import initializers_lr as lr_init_lib
-from ott.neural import datasets
 from ott.solvers import utils as solver_utils
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
@@ -18,6 +17,7 @@ from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
+OTDataset = Any  # to be removed when neural part is being removed from moscot
 
 
 __all__ = ["sinkhorn_divergence"]
@@ -272,7 +272,7 @@ def data_match_fn(
 
 class Loader:
 
-    def __init__(self, dataset: datasets.OTDataset, batch_size: int, seed: Optional[int] = None):
+    def __init__(self, dataset: OTDataset, batch_size: int, seed: Optional[int] = None):
         self.dataset = dataset
         self.batch_size = batch_size
         self._rng = np.random.default_rng(seed)

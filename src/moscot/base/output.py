@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import copy
 import functools
-from abc import abstractmethod
 from typing import Any, Callable, Iterable, Literal, Optional, Union
 
 import numpy as np
@@ -13,7 +12,7 @@ from scipy.sparse.linalg import LinearOperator
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike
 
-__all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
+__all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput"]
 
 
 class BaseSolverOutput(abc.ABC):
@@ -394,21 +393,3 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
         import jax.numpy as jnp
 
         return jnp.ones((n,), dtype=self.transport_matrix.dtype)
-
-
-class BaseNeuralOutput(BaseSolverOutput, abc.ABC):
-    """Base class for output of."""
-
-    @abstractmethod
-    def project_to_transport_matrix(
-        self,
-        source: Optional[ArrayLike] = None,
-        target: Optional[ArrayLike] = None,
-        condition: Optional[ArrayLike] = None,
-        save_transport_matrix: bool = False,
-        batch_size: int = 1024,
-        k: int = 30,
-        length_scale: Optional[float] = None,
-        seed: int = 42,
-    ) -> sp.csr_matrix:
-        """Project transport matrix."""
