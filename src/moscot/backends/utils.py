@@ -21,7 +21,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
     """TODO."""
     if backend not in _REGISTRY:
         raise ValueError(f"Backend `{backend!r}` is not available.")
-    solver_class = _REGISTRY[backend](problem_kind, solver_name=kwargs.pop("solver_name", None))
+    solver_class = _REGISTRY[backend](problem_kind)
     return solver_class if return_class else solver_class(**kwargs)
 
 
