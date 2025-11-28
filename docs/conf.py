@@ -49,7 +49,7 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
-    "ott": ("https://ott-jax.readthedocs.io/en/latest/", None),
+    "ott": ("https://ott-jax.readthedocs.io/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "anndata": ("https://anndata.readthedocs.io/en/latest/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/latest/", None),
