@@ -150,6 +150,7 @@ linkcheck_ignore = [
     r"https://doi.org/10.1145/2516971.2516977",
     r"https://doi.org/10.3390/a13090212",
     r"https://www.mdpi.com/1999-4893/13/9/212",
+    r"https://pubmed\.ncbi\.nlm\.nih\.gov/.*",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
