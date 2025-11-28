@@ -75,6 +75,13 @@ nitpick_ignore = [
     # ignore these classes until ott-jax adds them to their docs
     ("py:class", "ott.initializers.quadratic.initializers.BaseQuadraticInitializer"),
     ("py:class", "ott.initializers.linear.initializers.SinkhornInitializer"),
+    # https://stackoverflow.com/questions/11417221/sphinx-autodoc-gives-warning-pyclass-reference-target-not-found-type-warning
+    ("py:data", "typing.Union"),
+    ("py:data", "typing.Optional"),
+    ("py:data", "typing.Literal"),
+    ("py:class", "typing.Union"),
+    ("py:class", "typing.Optional"),
+    ("py:class", "typing.Literal"),
 ]
 # TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [
