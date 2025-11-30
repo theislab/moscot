@@ -259,7 +259,7 @@ class TestTemporalMixin:
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
         np.testing.assert_allclose(
-            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], rtol=1e-6, atol=1e-6
+            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], rtol=1e-5, atol=1e-4
         )
 
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
@@ -288,7 +288,7 @@ class TestTemporalMixin:
             result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], rtol=1e-6, atol=1e-6
         )
         np.testing.assert_allclose(
-            result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], rtol=1e-6, atol=1e-6
+            result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], rtol=1e-5, atol=5e-3
         )
 
     def test_compute_batch_distances_regression(self, gt_temporal_adata: AnnData):

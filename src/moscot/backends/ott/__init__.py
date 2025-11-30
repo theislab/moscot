@@ -1,15 +1,14 @@
 from ott.geometry import costs
 
 from moscot.backends.ott._utils import sinkhorn_divergence
-from moscot.backends.ott.output import GraphOTTOutput, NeuralOutput, OTTOutput
-from moscot.backends.ott.solver import GENOTLinSolver, GWSolver, SinkhornSolver
+from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
+from moscot.backends.ott.solver import GWSolver, SinkhornSolver
 from moscot.costs import register_cost
 
 __all__ = [
     "OTTOutput",
     "GWSolver",
     "SinkhornSolver",
-    "NeuralOutput",
     "sinkhorn_divergence",
     "GENOTLinSolver",
     "GraphOTTOutput",

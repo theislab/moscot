@@ -50,7 +50,7 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
-    "ott": ("https://ott-jax.readthedocs.io/en/latest/", None),
+    "ott": ("https://ott-jax.readthedocs.io/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "anndata": ("https://anndata.readthedocs.io/en/latest/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/latest/", None),
@@ -75,6 +75,13 @@ nitpick_ignore = [
     # ignore these classes until ott-jax adds them to their docs
     ("py:class", "ott.initializers.quadratic.initializers.BaseQuadraticInitializer"),
     ("py:class", "ott.initializers.linear.initializers.SinkhornInitializer"),
+    # https://stackoverflow.com/questions/11417221/sphinx-autodoc-gives-warning-pyclass-reference-target-not-found-type-warning
+    ("py:data", "typing.Union"),
+    ("py:data", "typing.Optional"),
+    ("py:data", "typing.Literal"),
+    ("py:class", "typing.Union"),
+    ("py:class", "typing.Optional"),
+    ("py:class", "typing.Literal"),
 ]
 # TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [
@@ -150,6 +157,7 @@ linkcheck_ignore = [
     r"https://doi.org/10.1145/2516971.2516977",
     r"https://doi.org/10.3390/a13090212",
     r"https://www.mdpi.com/1999-4893/13/9/212",
+    r"https://pubmed\.ncbi\.nlm\.nih\.gov/.*",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
