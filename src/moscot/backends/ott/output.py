@@ -1,8 +1,10 @@
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Literal, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+from ott.geometry import pointcloud
+from ott.problems.linear import linear_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
@@ -10,7 +12,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from moscot._types import ArrayLike, Device_t
-from moscot.base.output import BaseDiscreteSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
 
 __all__ = ["OTTOutput", "GraphOTTOutput"]
 
@@ -225,6 +227,44 @@ class OTTOutput(BaseDiscreteSolverOutput):
         if isinstance(self._output, sinkhorn.SinkhornOutput):
             return self._output.f, self._output.g
         return None
+
+    def _with_batch_size(self, batch_size: int) -> "OTTOutput":
+        """Return a copy whose online geometry materializes the cost in ``batch_size`` chunks.
+
+        Only :term:`Sinkhorn` outputs backed by an online :class:`~ott.geometry.pointcloud.PointCloud`
+        recompute the cost lazily during :meth:`push`/:meth:`pull`; for those, the chunk size is fixed at
+        ``solve`` time and governs peak memory. Rebuilding the geometry with a smaller ``batch_size`` lets
+        :meth:`~moscot.base.output.BaseDiscreteSolverOutput.sparsify` bound its memory. Every other output
+        (dense/offline geometry, :term:`low-rank`, :term:`GW`/:term:`FGW`) is returned unchanged, as its
+        :meth:`apply` is already memory-bounded.
+        """
+        out = self._output
+        if not isinstance(out, sinkhorn.SinkhornOutput):
+            return self
+        geom = out.geom
+        if not isinstance(geom, pointcloud.PointCloud) or geom._batch_size is None:
+            return self
+        if geom._scale_cost == "median":  # not implemented for online geometries in `ott`
+            return self
+        children, aux = geom.tree_flatten()
+        new_geom = type(geom).tree_unflatten({**aux, "batch_size": batch_size}, children)
+        prob = out.ot_prob
+        new_prob = linear_problem.LinearProblem(new_geom, prob.a, prob.b, tau_a=prob.tau_a, tau_b=prob.tau_b)
+        return OTTOutput(out.set(ot_prob=new_prob))
+
+    def sparsify(  # noqa: D102
+        self,
+        mode: Literal["threshold", "percentile", "min_row", "mass"],
+        value: Optional[float] = None,
+        batch_size: int = 1024,
+        n_samples: Optional[int] = None,
+        seed: Optional[int] = None,
+        max_k: Optional[int] = None,
+    ) -> MatrixSolverOutput:
+        out = self._with_batch_size(batch_size)
+        return BaseDiscreteSolverOutput.sparsify(
+            out, mode=mode, value=value, batch_size=batch_size, n_samples=n_samples, seed=seed, max_k=max_k
+        )
 
     @property
     def rank(self) -> int:  # noqa: D102

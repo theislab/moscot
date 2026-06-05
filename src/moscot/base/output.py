@@ -15,6 +15,53 @@ from moscot._types import ArrayLike, Device_t, DTypeLike
 __all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput"]
 
 
+def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) -> sp.csr_matrix:
+    """Keep, per row, the smallest set of entries capturing ``value`` of the row mass.
+
+    Parameters
+    ----------
+    rows
+        Dense block of shape ``[b, m]``; each row is a row of the transport matrix.
+    value
+        Target fraction of each row's mass to retain, in ``(0, 1]``.
+    max_k
+        Optional cap on the number of entries kept per row.
+
+    Returns
+    -------
+    Sparsified block as a :class:`~scipy.sparse.csr_matrix` of shape ``[b, m]``.
+    """
+    _, m = rows.shape
+    order = np.argsort(rows, axis=1)[:, ::-1]  # descending
+    sorted_vals = np.take_along_axis(rows, order, axis=1)
+    totals = sorted_vals.sum(axis=1, keepdims=True)
+    cum = np.cumsum(sorted_vals, axis=1)
+    # `value >= 1` keeps everything (avoids float cumsum vs. sum mismatch -> exact reconstruction).
+    target = np.full_like(totals, np.inf) if value >= 1.0 else value * totals
+    # smallest prefix whose cumulative mass reaches the target (crossing entry included).
+    k_per_row = (cum < target).sum(axis=1) + 1
+    k_per_row = np.where(totals.ravel() <= 0.0, 0, k_per_row)  # all-zero rows keep nothing
+    if max_k is not None:
+        k_per_row = np.minimum(k_per_row, max_k)
+    k_per_row = np.minimum(k_per_row, m)
+    keep_sorted = np.arange(m)[None, :] < k_per_row[:, None]
+    sel = np.zeros(rows.shape, dtype=bool)
+    np.put_along_axis(sel, order, keep_sorted, axis=1)
+    return sp.csr_matrix(np.where(sel, rows, 0.0))
+
+
+def _sparsify_block(
+    rows: np.ndarray, *, mode: str, thr: Optional[float], value: Optional[float], max_k: Optional[int]
+) -> sp.csr_matrix:
+    """Apply the sparsification criterion to a block of transport-matrix rows."""
+    if mode == "mass":
+        assert value is not None  # validated in `sparsify`
+        return _mass_select_block(rows, value=value, max_k=max_k)
+    rows = np.array(rows)  # writable copy
+    rows[rows < thr] = 0.0
+    return sp.csr_matrix(rows)
+
+
 class BaseSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
 
@@ -198,17 +245,19 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
     def sparsify(
         self,
-        mode: Literal["threshold", "percentile", "min_row"],
+        mode: Literal["threshold", "percentile", "min_row", "mass"],
         value: Optional[float] = None,
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
+        max_k: Optional[int] = None,
     ) -> MatrixSolverOutput:
         """Sparsify the :attr:`transport_matrix`.
 
-        This function sets all entries of the transport matrix below a certain threshold to :math:`0` and
+        This function sets entries of the transport matrix to :math:`0` according to ``mode`` and
         returns a :class:`~moscot.base.output.MatrixSolverOutput` with sparsified transport matrix stored
-        as a :class:`~scipy.sparse.csr_matrix`.
+        as a :class:`~scipy.sparse.csr_matrix`. The transport matrix is materialized in row blocks of
+        ``batch_size`` rows, so peak memory is bounded by ``batch_size``.
 
         .. warning::
             This function only serves for interfacing software which has to instantiate the transport matrix,
@@ -217,35 +266,45 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         Parameters
         ----------
         mode
-            How to determine the value below which entries are set to :math:`0`. Valid options are:
+            How to determine the entries that are set to :math:`0`. Valid options are:
 
             - `'threshold'` - ``value`` is the threshold below which entries are set to :math:`0`.
             - `'percentile'` - ``value`` is the percentile in :math:`[0, 100]` of the :attr:`transport_matrix`.
               below which entries are set to :math:`0`.
             - `'min_row'` - ``value`` is not used, it is chosen such that each row has at least 1 non-zero entry.
+            - `'mass'` - per row, keep the largest entries capturing a fraction ``value`` of the row's mass
+              (at most ``max_k`` entries per row); ``value`` must be in :math:`(0, 1]`.
         value
-            Value to use for sparsification.
+            Value to use for sparsification. Its meaning depends on ``mode`` (see above).
         batch_size
-            How many rows to materialize when sparsifying the :attr:`transport_matrix`.
+            How many rows to materialize at a time when sparsifying the :attr:`transport_matrix`.
         n_samples
             If ``mode = 'percentile'``, determine the number of samples based on which the percentile is computed
             stochastically. Note this means that a matrix of shape `[n_samples, min(transport_matrix.shape)]`
             has to be instantiated. If `None`, ``n_samples`` is set to ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
+        max_k
+            Maximum number of entries to keep per row. Only valid when ``mode = 'mass'``.
 
         Returns
         -------
         Output with sparsified transport matrix.
         """
         n, m = self.shape
-        if mode == "threshold":
+        thr: Optional[float] = None
+        if mode == "mass":
+            if value is None or not 0.0 < value <= 1.0:
+                raise ValueError("If `mode = 'mass'`, `value` must be in `(0, 1]`.")
+            if max_k is not None and max_k <= 0:
+                raise ValueError(f"`max_k` must be a positive integer, found `{max_k}`.")
+        elif mode == "threshold":
             if value is None:
-                raise ValueError("If `mode = 'threshold'`, `threshold` cannot be `None`.")
+                raise ValueError("If `mode = 'threshold'`, `value` cannot be `None`.")
             thr = value
         elif mode == "percentile":
             if value is None:
-                raise ValueError("If `mode = 'percentile'`, `threshold` cannot be `None`.")
+                raise ValueError("If `mode = 'percentile'`, `value` cannot be `None`.")
             rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
             k = min(n_samples, n)
@@ -263,17 +322,24 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         else:
             raise NotImplementedError(f"Mode `{mode}` is not yet implemented.")
 
-        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
+        if mode != "mass" and max_k is not None:
+            raise ValueError("`max_k` is only supported with `mode = 'mass'`.")
+
+        # Always iterate over source rows so that each block holds rows of the transport matrix.
+        # This keeps the per-row criteria (e.g. `mass`) well-defined and peak memory at `[batch_size, m]`.
         tmaps_sparse: list[sp.csr_matrix] = []
+        for batch in range(0, n, batch_size):
+            cols = min(batch_size, n - batch)
+            x = np.eye(n, cols, -batch, dtype=float)
+            rows = np.asarray(self.push(x, scale_by_marginals=False)).T  # [cols, m] = rows of `T`
+            tmaps_sparse.append(_sparsify_block(rows, mode=mode, thr=thr, value=value, max_k=max_k))
 
-        for batch in range(0, k, batch_size):
-            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
-            res = np.array(func(x, scale_by_marginals=False))
-            res[res < thr] = 0.0
-            tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
-
+        transport_matrix = sp.vstack(tmaps_sparse).tocsr() if tmaps_sparse else sp.csr_matrix((n, m))
         return MatrixSolverOutput(
-            transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
+            transport_matrix=transport_matrix,
+            cost=self.cost,
+            converged=self.converged,
+            is_linear=self.is_linear,
         )
 
     @property

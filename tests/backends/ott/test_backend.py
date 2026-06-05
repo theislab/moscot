@@ -21,6 +21,7 @@ from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
 from moscot.backends.ott._utils import InitializerResolver, alpha_to_fused_penalty
+from moscot.backends.ott.output import OTTOutput
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
@@ -406,3 +407,91 @@ class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
             a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, alpha=1.0
         )
         out.plot_errors()
+
+
+def _online_pointcloud_available() -> bool:
+    """Whether ott's online :class:`~ott.geometry.pointcloud.PointCloud` apply works with the installed jax.
+
+    ott-jax up to and including 0.6.0 relies on ``jax.interpreters.batching.is_vmappable``, which jax
+    removed in 0.9, breaking any online/batched apply. The rebatch tests are skipped where it is unavailable.
+    """
+    try:
+        geom = PointCloud(jnp.zeros((2, 2)), jnp.zeros((2, 2)), epsilon=0.1, batch_size=1)
+        Sinkhorn()(LinearProblem(geom))
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+online_only = pytest.mark.skipif(
+    not _online_pointcloud_available(),
+    reason="online `PointCloud` apply unavailable (ott-jax/jax `is_vmappable` incompatibility)",
+)
+
+
+@online_only
+class TestSparsifyRebatch:
+    """`OTTOutput.sparsify` rebatches an online geometry so peak memory follows `batch_size`."""
+
+    @staticmethod
+    def _online_output(scale_cost: Union[float, str], tau: float, *, batch_size: int = 64, seed: int = 0) -> OTTOutput:
+        rng = np.random.RandomState(seed)
+        x = jnp.asarray(rng.randn(60, 5))
+        y = jnp.asarray(rng.randn(80, 5))
+        geom = PointCloud(x, y, epsilon=0.1, batch_size=batch_size, scale_cost=scale_cost)
+        return OTTOutput(Sinkhorn()(LinearProblem(geom, tau_a=tau, tau_b=tau)))
+
+    @pytest.mark.parametrize("scale_cost", [1.0, 0.5, "mean", "max_cost", "max_norm", "max_bound"])
+    @pytest.mark.parametrize("tau", [1.0, 0.9])
+    def test_rebatch_reconstructs(self, scale_cost: Union[float, str], tau: float) -> None:
+        # sparsifying with a small `batch_size` must reproduce the transport matrix exactly.
+        out = self._online_output(scale_cost, tau, batch_size=64)
+        tmap = np.asarray(out.transport_matrix)
+        mso = out.sparsify(mode="mass", value=1.0, max_k=None, batch_size=8)
+        np.testing.assert_allclose(mso.transport_matrix.toarray(), tmap, rtol=RTOL, atol=1e-5)
+
+    def test_rebatch_sets_batch_size_and_preserves_cost(self) -> None:
+        out = self._online_output("mean", 1.0, batch_size=64)
+        reb = out._with_batch_size(8)
+        assert reb is not out
+        assert reb._output.geom._batch_size == 8
+        np.testing.assert_allclose(
+            np.asarray(out._output.geom.cost_matrix),
+            np.asarray(reb._output.geom.cost_matrix),
+            rtol=RTOL,
+            atol=1e-5,
+        )
+
+
+class TestSparsifyNoRebatch:
+    """Rebatch is a no-op when there is no online cost to retune; sparsify still works."""
+
+    @staticmethod
+    def _xy(seed: int = 0) -> Tuple[jnp.ndarray, jnp.ndarray]:
+        rng = np.random.RandomState(seed)
+        return jnp.asarray(rng.randn(40, 4)), jnp.asarray(rng.randn(50, 4))
+
+    def test_offline_geometry_no_rebatch(self) -> None:
+        x, y = self._xy()
+        out = OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, epsilon=0.1))))  # offline (batch_size=None)
+        assert out._with_batch_size(8) is out
+
+    def test_median_scale_cost_no_rebatch(self) -> None:
+        x, y = self._xy()
+        out = OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, epsilon=0.1, scale_cost="median"))))
+        assert out._with_batch_size(8) is out
+
+    def test_low_rank_no_rebatch(self) -> None:
+        x, y = self._xy()
+        out = OTTOutput(LRSinkhorn(rank=3)(LinearProblem(PointCloud(x, y, epsilon=0.1))))
+        assert out._with_batch_size(8) is out
+        mso = out.sparsify(mode="mass", value=1.0, max_k=None, batch_size=8)
+        np.testing.assert_allclose(
+            mso.transport_matrix.toarray(), np.asarray(out.transport_matrix), rtol=RTOL, atol=1e-4
+        )
+
+    def test_gw_no_rebatch(self) -> None:
+        x, y = self._xy()
+        prob = QuadraticProblem(PointCloud(x, epsilon=0.1), PointCloud(y, epsilon=0.1))
+        out = OTTOutput(GromovWasserstein(epsilon=0.1, linear_solver=Sinkhorn())(prob))
+        assert out._with_batch_size(8) is out
