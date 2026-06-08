@@ -49,13 +49,13 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
-    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "jax": ("https://docs.jax.dev/en/latest/", None),
     "ott": ("https://ott-jax.readthedocs.io/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "anndata": ("https://anndata.readthedocs.io/en/latest/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/latest/", None),
     "squidpy": ("https://squidpy.readthedocs.io/en/latest/", None),
-    "mudata": ("https://mudata.readthedocs.io/en/latest/", None),
+    "mudata": ("https://mudata.readthedocs.io/stable/", None),
 }
 master_doc = "index"
 pygments_style = "tango"
@@ -70,6 +70,7 @@ nitpick_ignore = [
     ("py:class", "a set-like object providing a view on D's keys"),
     ("py:class", "v, remove specified key and return the corresponding value."),  # noqa: E501
     ("py:class", "None.  Update D from dict/iterable E and F."),
+    ("py:class", "None.  Update D from mapping/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
     # ignore these classes until ott-jax adds them to their docs
@@ -82,6 +83,17 @@ nitpick_ignore = [
     ("py:class", "typing.Union"),
     ("py:class", "typing.Optional"),
     ("py:class", "typing.Literal"),
+    # private anndata/pandas/mudata class paths not exposed in their public intersphinx inventory
+    ("py:class", "anndata._core.anndata.AnnData"),
+    ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", "mudata._core.mudata.MuData"),
+    ("py:class", "mudata.MuData"),
+    ("py:func", "mudata.read"),
+]
+suppress_warnings = [
+    "ref.doc",         # notebook submodule not checked out in local/lint builds
+    "toc.not_readable",  # same
+    "tippy.wiki",      # Wikipedia preview fetches are network-dependent
 ]
 # TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [
