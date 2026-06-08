@@ -25,9 +25,9 @@ jobs:
             python: "3.10"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
@@ -43,7 +43,7 @@ jobs:
           PYTEST_ADDOPTS: -vv -n 2
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           flags: tests-${{ matrix.os }}-${{ matrix.python }}
