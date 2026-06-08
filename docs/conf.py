@@ -156,6 +156,8 @@ tippy_enable_mathjax = True
 tippy_enable_doitips = False
 linkcheck_report_timeouts_as_broken = True
 linkcheck_ignore = [
+    # 500 Server Error (upstream server issue)
+    r"https://datasets-benchmarks-proceedings\.neurips\.cc/.*",
     # 403 Client Error
     r"https://doi.org/10.1126/science.aad0501",
     r"https://resources.aertslab.org/cistarget/tf_lists/",
