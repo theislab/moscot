@@ -16,7 +16,7 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     permissions:
-      id-token: write  # for codecov OIDC
+      id-token: write # for codecov OIDC
       contents: read
     strategy:
       fail-fast: false
