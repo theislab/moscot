@@ -91,9 +91,9 @@ nitpick_ignore = [
     ("py:func", "mudata.read"),
 ]
 suppress_warnings = [
-    "ref.doc",         # notebook submodule not checked out in local/lint builds
+    "ref.doc",  # notebook submodule not checked out in local/lint builds
     "toc.not_readable",  # same
-    "tippy.wiki",      # Wikipedia preview fetches are network-dependent
+    "tippy.wiki",  # Wikipedia preview fetches are network-dependent
 ]
 # TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [
