@@ -5,11 +5,16 @@ build:
   tools:
     python: "3.12"
   jobs:
-    post_create_environment:
-      # Install moscot without its heavy ML backend (jax/ott/flax/optax/diffrax).
-      # Those packages are mocked via autodoc_mock_imports in docs/conf.py.
-      - pip install --no-deps .
-      - pip install -r docs/rtd-requirements.txt
+    pre_create_environment:
+      - asdf plugin add uv
+      - asdf install uv latest
+      - asdf global uv latest
+    create_environment:
+      - uv venv "${READTHEDOCS_VIRTUALENV_PATH}"
+    install:
+      # uv keeps memory usage low enough for RTD builders, unlike pip,
+      # which gets OOM-killed installing the jax/ott dependency stack.
+      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv pip install .[docs]
 
 sphinx:
   builder: html
