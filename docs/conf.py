@@ -129,6 +129,9 @@ myst_enable_extensions = [
 myst_heading_anchors = 3
 
 
+# mock heavy ML backend so RTD can build docs without installing jax/ott/flax/etc.
+autodoc_mock_imports = ["jax", "jaxlib", "ott", "flax", "optax", "diffrax"]
+
 # autodoc + napoleon
 autosummary_generate = True
 autodoc_member_order = "alphabetical"
