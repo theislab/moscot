@@ -2,7 +2,7 @@ name: Test
 
 on:
   schedule:
-    - cron: 00 00 * * 1
+    - cron: "0 5 1,15 * *"
   push:
     branches: [main]
   pull_request:
@@ -15,19 +15,22 @@ concurrency:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write # for codecov OIDC
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python: ["3.10", "3.11"]
+        python: ["3.11", "3.12"]
         include:
           - os: macos-latest
-            python: "3.10"
+            python: "3.12"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
@@ -38,16 +41,26 @@ jobs:
 
       - name: Test
         run: |
-          tox -e py-${{ matrix.python }}
+          tox -e py${{ matrix.python }}
         env:
           PYTEST_ADDOPTS: -vv -n 2
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v6
         with:
           files: ./coverage.xml
           flags: tests-${{ matrix.os }}-${{ matrix.python }}
           name: unittests
           env_vars: OS,PYTHON
           fail_ci_if_error: false
-          verbose: true
+          use_oidc: true
+
+  check:
+    name: Tests pass
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}

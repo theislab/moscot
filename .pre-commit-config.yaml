@@ -41,11 +41,6 @@ repos:
       - id: check-docstring-first
       - id: check-yaml
       - id: check-toml
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.1
-    hooks:
-      - id: pyupgrade
-        args: [--py3-plus, --py38-plus, --keep-runtime-typing]
   - repo: https://github.com/asottile/blacken-docs
     rev: 1.19.1
     hooks:
