@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import copy
 import functools
-from typing import Any, Callable, Iterable, Literal, Optional, Union
+from typing import Any, Callable, Iterable, Literal, Optional, Union, cast
 
 import numpy as np
 import scipy.sparse as sp
@@ -473,9 +473,10 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
     def _row_materializer(self) -> RowMaterializer:  # noqa: D102
         tmap = self.transport_matrix
         if sp.issparse(tmap):
-            return lambda ixs: tmap[ixs].toarray()
-        tmap = np.asarray(tmap)  # e.g. `jax` arrays
-        return lambda ixs: tmap[ixs]
+            sparse_tmap = cast(sp.spmatrix, tmap)
+            return lambda ixs: sparse_tmap[ixs].toarray()
+        dense_tmap = np.asarray(tmap)  # e.g. `jax` arrays
+        return lambda ixs: dense_tmap[ixs]
 
     @property
     def transport_matrix(self) -> ArrayLike:  # noqa: D102
