@@ -292,9 +292,9 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         returns a :class:`~moscot.base.output.MatrixSolverOutput` with sparsified transport matrix stored
         as a :class:`~scipy.sparse.csr_matrix`. The transport matrix is materialized in row blocks of
         ``batch_size`` rows; outputs that can build rows directly - :mod:`ott` :term:`Sinkhorn`,
-        :term:`GW`/:term:`FGW`, their :term:`low-rank` counterparts, and already materialized matrices -
-        never hold more than ``[batch_size, m]`` at a time. Other outputs fall back to pushing indicator
-        columns, whose cost depends on the output's :meth:`push`.
+        :term:`Gromov-Wasserstein`/:term:`fused Gromov-Wasserstein`, their :term:`low-rank` counterparts,
+        and already materialized matrices - never hold more than ``[batch_size, m]`` at a time. Other
+        outputs fall back to pushing indicator columns, whose cost depends on the output's :meth:`push`.
 
         Rows carrying no mass keep no entries and take no part in choosing a threshold, whichever
         ``mode`` is used - no threshold can make them non-empty, and letting them take part would
