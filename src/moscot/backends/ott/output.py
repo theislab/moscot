@@ -1,10 +1,9 @@
-from typing import Any, Literal, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import numpy as np
-from ott.geometry import pointcloud
-from ott.problems.linear import linear_problem
+from ott.geometry import geometry, low_rank, pointcloud
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
@@ -12,9 +11,77 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from moscot._types import ArrayLike, Device_t
-from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
+from moscot.base.output import (
+    BaseDiscreteSolverOutput,
+    RowMaterializer,
+)
 
 __all__ = ["OTTOutput", "GraphOTTOutput"]
+
+
+def _rows_from_potentials(f: jnp.ndarray, g: jnp.ndarray, geom: Any) -> Optional[RowMaterializer]:
+    r"""Rows of :math:`\exp((f_i + g_j - C_{ij}) / \varepsilon)`, as :mod:`ott` computes the full matrix.
+
+    The parent geometry's resolved :attr:`epsilon` and :attr:`inv_scale_cost` are captured once:
+    :meth:`~ott.geometry.geometry.Geometry.subset` carries ``scale_cost``/``relative_epsilon`` as
+    unevaluated strings, so a subset geometry would silently re-derive both from the subset.
+
+    Returns :obj:`None` if the geometry cannot produce a row block without materializing everything,
+    in which case the caller falls back to pushing indicator columns.
+    """
+    eps = geom.epsilon
+    if isinstance(geom, pointcloud.PointCloud):
+        x, y, cost_fn, inv_scale = geom.x, geom.y, geom.cost_fn, geom.inv_scale_cost
+
+        def cost_rows(ixs: np.ndarray) -> jnp.ndarray:
+            return cost_fn.all_pairs(x[ixs], y) * inv_scale
+
+    elif isinstance(geom, low_rank.LRCGeometry):
+        # `subset` is silently wrong here (it slices the two factors as if they were cost/kernel)
+        cost_1, cost_2, bias = geom.cost_1, geom.cost_2, geom.bias
+
+        def cost_rows(ixs: np.ndarray) -> jnp.ndarray:
+            return cost_1[ixs] @ cost_2.T + bias
+
+    elif type(geom) is geometry.Geometry:  # dense cost; hoisted out of the block loop
+        cost = geom.cost_matrix
+
+        def cost_rows(ixs: np.ndarray) -> jnp.ndarray:
+            return cost[ixs]
+
+    else:  # e.g. `Geodesic`, whose cost is never materialized
+        return None
+
+    def rows(ixs: np.ndarray) -> jnp.ndarray:
+        return jnp.exp((f[ixs][:, None] + g[None, :] - cost_rows(ixs)) / eps)
+
+    return rows
+
+
+def _ott_row_materializer(out: Any) -> Optional[RowMaterializer]:
+    """Materialize rows of an :mod:`ott` output's transport matrix, or :obj:`None` if unsupported."""
+    if isinstance(out, (sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein_lr.LRGWOutput)):
+        # `T = Q diag(1 / g) R^T`, as in `ott`'s `matrix`; never touches a geometry, which matters
+        # because `LRGWOutput.geom` re-linearizes on every access
+        qg, r = out.q * (1.0 / out.g), out.r
+
+        def rows(ixs: np.ndarray) -> jnp.ndarray:
+            return qg[ixs] @ r.T
+
+        return rows
+    if isinstance(out, sinkhorn.SinkhornOutput):
+        return _rows_from_potentials(out.f, out.g, out.geom)
+    if isinstance(out, gromov_wasserstein.GWOutput):
+        inner = _ott_row_materializer(out.linear_state)
+        if inner is None:
+            return None
+        scale = out._rescale_factor  # `GWOutput.matrix`/`apply` rescale the linearization; so must we
+
+        def rows(ixs: np.ndarray) -> jnp.ndarray:
+            return scale * inner(ixs)
+
+        return rows
+    return None
 
 
 class OTTOutput(BaseDiscreteSolverOutput):
@@ -192,6 +259,10 @@ class OTTOutput(BaseDiscreteSolverOutput):
     def transport_matrix(self) -> ArrayLike:  # noqa: D102
         return self._output.matrix
 
+    def _row_materializer(self) -> RowMaterializer:  # noqa: D102
+        materialize = _ott_row_materializer(self._output)
+        return super()._row_materializer() if materialize is None else materialize
+
     @property
     def is_linear(self) -> bool:  # noqa: D102
         return isinstance(self._output, (sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput))
@@ -227,44 +298,6 @@ class OTTOutput(BaseDiscreteSolverOutput):
         if isinstance(self._output, sinkhorn.SinkhornOutput):
             return self._output.f, self._output.g
         return None
-
-    def _with_batch_size(self, batch_size: int) -> "OTTOutput":
-        """Return a copy whose online geometry materializes the cost in ``batch_size`` chunks.
-
-        Only :term:`Sinkhorn` outputs backed by an online :class:`~ott.geometry.pointcloud.PointCloud`
-        recompute the cost lazily during :meth:`push`/:meth:`pull`; for those, the chunk size is fixed at
-        ``solve`` time and governs peak memory. Rebuilding the geometry with a smaller ``batch_size`` lets
-        :meth:`~moscot.base.output.BaseDiscreteSolverOutput.sparsify` bound its memory. Every other output
-        (dense/offline geometry, :term:`low-rank`, :term:`GW`/:term:`FGW`) is returned unchanged, as its
-        :meth:`apply` is already memory-bounded.
-        """
-        out = self._output
-        if not isinstance(out, sinkhorn.SinkhornOutput):
-            return self
-        geom = out.geom
-        if not isinstance(geom, pointcloud.PointCloud) or geom._batch_size is None:
-            return self
-        if geom._scale_cost == "median":  # not implemented for online geometries in `ott`
-            return self
-        children, aux = geom.tree_flatten()
-        new_geom = type(geom).tree_unflatten({**aux, "batch_size": batch_size}, children)
-        prob = out.ot_prob
-        new_prob = linear_problem.LinearProblem(new_geom, prob.a, prob.b, tau_a=prob.tau_a, tau_b=prob.tau_b)
-        return OTTOutput(out.set(ot_prob=new_prob))
-
-    def sparsify(  # noqa: D102
-        self,
-        mode: Literal["threshold", "percentile", "min_row", "mass"],
-        value: Optional[float] = None,
-        batch_size: int = 1024,
-        n_samples: Optional[int] = None,
-        seed: Optional[int] = None,
-        max_k: Optional[int] = None,
-    ) -> MatrixSolverOutput:
-        out = self._with_batch_size(batch_size)
-        return BaseDiscreteSolverOutput.sparsify(
-            out, mode=mode, value=value, batch_size=batch_size, n_samples=n_samples, seed=seed, max_k=max_k
-        )
 
     @property
     def rank(self) -> int:  # noqa: D102
@@ -319,6 +352,15 @@ class GraphOTTOutput(OTTOutput):
         # ott-jax only supports lse_mode=False with graph geometry
         res = self._output.apply(x_expanded.T, axis=1 - forward, lse_mode=False).T
         return res[len(x) :] if forward else res[: -len(x)]
+
+    def _row_materializer(self) -> RowMaterializer:
+        """Materialize rows by pushing indicator columns.
+
+        :attr:`shape` is a sub-block of the expanded ``[n + m, n + m]`` graph problem, so the wrapped
+        output's potentials do not index this output's rows. Pushing is cheap here anyway: applying a
+        (sparse) graph kernel costs ``nnz`` per column, not ``n * m``.
+        """
+        return BaseDiscreteSolverOutput._row_materializer(self)
 
     def to(self, device: Optional[Device_t] = None) -> "GraphOTTOutput":  # noqa: D102
         if device is None:

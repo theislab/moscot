@@ -14,6 +14,9 @@ from moscot._types import ArrayLike, Device_t, DTypeLike
 
 __all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput"]
 
+#: Materializes rows ``ixs`` of a transport matrix as a dense array of shape ``[len(ixs), m]``.
+RowMaterializer = Callable[[np.ndarray], ArrayLike]
+
 
 def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) -> sp.csr_matrix:
     """Keep, per row, the smallest set of entries capturing ``value`` of the row mass.
@@ -48,6 +51,17 @@ def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) 
     sel = np.zeros(rows.shape, dtype=bool)
     np.put_along_axis(sel, order, keep_sorted, axis=1)
     return sp.csr_matrix(np.where(sel, rows, 0.0))
+
+
+def _massless_rows(rows: np.ndarray) -> np.ndarray:
+    """Mask of rows carrying no mass.
+
+    Such rows cannot be kept non-empty by any threshold, so every sparsification mode treats them
+    the same way: they keep no entries, and they are excluded from the statistics that determine a
+    threshold. Letting them take part would drag any row-based threshold down to :math:`0` and
+    disable sparsification altogether, without making the row usable.
+    """
+    return ~(rows.max(axis=1) > 0.0)
 
 
 def _sparsify_block(
@@ -243,6 +257,26 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
         return op
 
+    def _row_materializer(self) -> RowMaterializer:
+        """Build a callable materializing rows of the :attr:`transport_matrix`.
+
+        The callable maps row indices to a dense ``[len(ixs), m]`` array. It is built once per
+        :meth:`sparsify` call, so subclasses can hoist per-output work (e.g. resolving a geometry)
+        out of the block loop.
+
+        This default pushes indicator columns, which is correct for any output but costs
+        ``n * m * len(ixs)`` whenever :meth:`push` materializes a dense tensor - as :mod:`ott`'s
+        log-sum-exp apply does. Subclasses that can slice or recompute rows directly override it.
+        """
+        n = self.shape[0]
+
+        def materialize(ixs: np.ndarray) -> ArrayLike:
+            x = np.zeros((n, len(ixs)), dtype=float)
+            x[ixs, np.arange(len(ixs))] = 1.0
+            return np.asarray(self.push(x, scale_by_marginals=False)).T
+
+        return materialize
+
     def sparsify(
         self,
         mode: Literal["threshold", "percentile", "min_row", "mass"],
@@ -257,7 +291,15 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         This function sets entries of the transport matrix to :math:`0` according to ``mode`` and
         returns a :class:`~moscot.base.output.MatrixSolverOutput` with sparsified transport matrix stored
         as a :class:`~scipy.sparse.csr_matrix`. The transport matrix is materialized in row blocks of
-        ``batch_size`` rows, so peak memory is bounded by ``batch_size``.
+        ``batch_size`` rows; outputs that can build rows directly - :mod:`ott` :term:`Sinkhorn`,
+        :term:`GW`/:term:`FGW`, their :term:`low-rank` counterparts, and already materialized matrices -
+        never hold more than ``[batch_size, m]`` at a time. Other outputs fall back to pushing indicator
+        columns, whose cost depends on the output's :meth:`push`.
+
+        Rows carrying no mass keep no entries and take no part in choosing a threshold, whichever
+        ``mode`` is used - no threshold can make them non-empty, and letting them take part would
+        drag the threshold down to :math:`0`. A warning is emitted when any are present, since the
+        result then cannot be normalized into a Markov transition matrix.
 
         .. warning::
             This function only serves for interfacing software which has to instantiate the transport matrix,
@@ -270,8 +312,10 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
             - `'threshold'` - ``value`` is the threshold below which entries are set to :math:`0`.
             - `'percentile'` - ``value`` is the percentile in :math:`[0, 100]` of the :attr:`transport_matrix`.
-              below which entries are set to :math:`0`.
-            - `'min_row'` - ``value`` is not used, it is chosen such that each row has at least 1 non-zero entry.
+              below which entries are set to :math:`0`, estimated from ``n_samples`` randomly sampled rows.
+            - `'min_row'` - ``value`` is not used, it is set to ``min_i max_j T_ij``, the largest
+              threshold for which every row keeps at least 1 non-zero entry. It does not depend on
+              ``batch_size``; the rows are materialized twice, once for the threshold and once for the values.
             - `'mass'` - per row, keep the largest entries capturing a fraction ``value`` of the row's mass
               (at most ``max_k`` entries per row); ``value`` must be in :math:`(0, 1]`.
         value
@@ -279,9 +323,9 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         batch_size
             How many rows to materialize at a time when sparsifying the :attr:`transport_matrix`.
         n_samples
-            If ``mode = 'percentile'``, determine the number of samples based on which the percentile is computed
-            stochastically. Note this means that a matrix of shape `[n_samples, min(transport_matrix.shape)]`
-            has to be instantiated. If `None`, ``n_samples`` is set to ``batch_size``.
+            If ``mode = 'percentile'``, the number of rows sampled to estimate the percentile stochastically.
+            Note this means that a matrix of shape `[n_samples, m]` has to be instantiated.
+            If `None`, ``n_samples`` is set to ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
         max_k
@@ -292,6 +336,9 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         Output with sparsified transport matrix.
         """
         n, m = self.shape
+        materialize = self._row_materializer()
+        row_blocks = [np.arange(start, min(start + batch_size, n)) for start in range(0, n, batch_size)]
+
         thr: Optional[float] = None
         if mode == "mass":
             if value is None or not 0.0 < value <= 1.0:
@@ -306,19 +353,21 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
             if value is None:
                 raise ValueError("If `mode = 'percentile'`, `value` cannot be `None`.")
             rng = np.random.RandomState(seed=seed)
-            n_samples = n_samples if n_samples is not None else batch_size
-            k = min(n_samples, n)
-            x = np.zeros((m, k))
-            rows = rng.choice(m, size=k)
-            x[rows, np.arange(k)] = 1.0
-            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            thr = np.percentile(res, value)
+            k = min(n_samples if n_samples is not None else batch_size, n)
+            ixs = np.sort(rng.choice(n, size=k, replace=False))
+            sample = np.asarray(materialize(ixs))
+            sample = sample[~_massless_rows(sample)]
+            thr = float(np.percentile(sample, value)) if sample.size else np.inf
         elif mode == "min_row":
+            # exact rule `min_i max_j T_ij`: every block holds whole rows, so each row's maximum is
+            # exact and the threshold does not depend on `batch_size`. Computing it from the same
+            # blocks that produce the values also keeps the two consistent to the last bit.
             thr = np.inf
-            for batch in range(0, m, batch_size):
-                x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-                res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr = min(thr, float(res.max(axis=1).min()))
+            for ixs in row_blocks:
+                maxima = np.asarray(materialize(ixs)).max(axis=1)
+                maxima = maxima[maxima > 0.0]  # see `_massless_rows`
+                if maxima.size:
+                    thr = min(thr, float(maxima.min()))
         else:
             raise NotImplementedError(f"Mode `{mode}` is not yet implemented.")
 
@@ -328,11 +377,16 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         # Always iterate over source rows so that each block holds rows of the transport matrix.
         # This keeps the per-row criteria (e.g. `mass`) well-defined and peak memory at `[batch_size, m]`.
         tmaps_sparse: list[sp.csr_matrix] = []
-        for batch in range(0, n, batch_size):
-            cols = min(batch_size, n - batch)
-            x = np.eye(n, cols, -batch, dtype=float)
-            rows = np.asarray(self.push(x, scale_by_marginals=False)).T  # [cols, m] = rows of `T`
-            tmaps_sparse.append(_sparsify_block(rows, mode=mode, thr=thr, value=value, max_k=max_k))
+        n_massless = 0
+        for ixs in row_blocks:
+            block = np.asarray(materialize(ixs))
+            n_massless += int(_massless_rows(block).sum())
+            tmaps_sparse.append(_sparsify_block(block, mode=mode, thr=thr, value=value, max_k=max_k))
+        if n_massless:
+            logger.warning(
+                f"`{n_massless}` row(s) of the transport matrix carry no mass and are left empty; "
+                f"the sparsified matrix cannot be normalized into a Markov transition matrix."
+            )
 
         transport_matrix = sp.vstack(tmaps_sparse).tocsr() if tmaps_sparse else sp.csr_matrix((n, m))
         return MatrixSolverOutput(
@@ -415,6 +469,13 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
 
     def _apply_forward(self, x: ArrayLike) -> ArrayLike:
         return self._apply(x, forward=True)
+
+    def _row_materializer(self) -> RowMaterializer:  # noqa: D102
+        tmap = self.transport_matrix
+        if sp.issparse(tmap):
+            return lambda ixs: tmap[ixs].toarray()
+        tmap = np.asarray(tmap)  # e.g. `jax` arrays
+        return lambda ixs: tmap[ixs]
 
     @property
     def transport_matrix(self) -> ArrayLike:  # noqa: D102

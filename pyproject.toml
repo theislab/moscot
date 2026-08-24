@@ -185,7 +185,11 @@ known_bio = ["anndata", "scanpy", "squidpy"]
 known_plotting = ["IPython", "matplotlib", "mpl_toolkits", "seaborn"]
 
 [tool.pytest.ini_options]
-markers = ["fast: marks tests as fask"]
+markers = [
+    "fast: marks tests as fask",
+    "memory: strict peak-memory tests; deselected by default, run with `pytest -m memory`",
+]
+addopts = "-m 'not memory'"
 xfail_strict = true
 filterwarnings = [
     "ignore:No data for colormapping:UserWarning",
