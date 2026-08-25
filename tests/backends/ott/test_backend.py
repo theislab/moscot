@@ -429,69 +429,92 @@ online_only = pytest.mark.skipif(
 )
 
 
-@online_only
-class TestSparsifyRebatch:
-    """`OTTOutput.sparsify` rebatches an online geometry so peak memory follows `batch_size`."""
+class TestSparsifyRows:
+    """`sparsify` builds rows of `T` directly, instead of applying `T` to indicator columns."""
+
+    FLAVOURS = [
+        "sinkhorn",
+        pytest.param("sinkhorn_online", marks=online_only),
+        "sinkhorn_lrc",
+        "sinkhorn_lr",
+        "gw",
+        "gw_lr",
+        "fgw",
+    ]
 
     @staticmethod
-    def _online_output(scale_cost: Union[float, str], tau: float, *, batch_size: int = 64, seed: int = 0) -> OTTOutput:
+    def _output(flavour: str, scale_cost: Union[float, str] = 1.0, *, seed: int = 0) -> OTTOutput:
         rng = np.random.RandomState(seed)
-        x = jnp.asarray(rng.randn(60, 5))
-        y = jnp.asarray(rng.randn(80, 5))
-        geom = PointCloud(x, y, epsilon=0.1, batch_size=batch_size, scale_cost=scale_cost)
-        return OTTOutput(Sinkhorn()(LinearProblem(geom, tau_a=tau, tau_b=tau)))
+        x, y = jnp.asarray(rng.randn(40, 4)), jnp.asarray(rng.randn(50, 4))
+        kwargs = {"epsilon": 0.1, "scale_cost": scale_cost}
+        if flavour == "sinkhorn":
+            return OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, **kwargs))))
+        if flavour == "sinkhorn_online":
+            return OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, batch_size=8, **kwargs))))
+        if flavour == "sinkhorn_lrc":  # full-rank Sinkhorn over a low-rank cost, cf. `cost_matrix_rank`
+            return OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, **kwargs).to_LRCGeometry(rank=3))))
+        if flavour == "sinkhorn_lr":
+            return OTTOutput(LRSinkhorn(rank=3)(LinearProblem(PointCloud(x, y, **kwargs))))
+        quad = QuadraticProblem(PointCloud(x, **kwargs), PointCloud(y, **kwargs))
+        if flavour == "gw":
+            return OTTOutput(GromovWasserstein(epsilon=0.1, linear_solver=Sinkhorn())(quad))
+        if flavour == "gw_lr":
+            return OTTOutput(LRGromovWasserstein(rank=3)(quad))
+        if flavour == "fgw":
+            fused = QuadraticProblem(
+                PointCloud(x, **kwargs), PointCloud(y, **kwargs), geom_xy=PointCloud(x, y, **kwargs), fused_penalty=1.0
+            )
+            return OTTOutput(GromovWasserstein(epsilon=0.1, linear_solver=Sinkhorn())(fused))
+        raise ValueError(f"Unknown flavour `{flavour}`.")
 
-    @pytest.mark.parametrize("scale_cost", [1.0, 0.5, "mean", "max_cost", "max_norm", "max_bound"])
-    @pytest.mark.parametrize("tau", [1.0, 0.9])
-    def test_rebatch_reconstructs(self, scale_cost: Union[float, str], tau: float) -> None:
-        # sparsifying with a small `batch_size` must reproduce the transport matrix exactly.
-        out = self._online_output(scale_cost, tau, batch_size=64)
+    @pytest.mark.parametrize("batch_size", [1, 8, 1024])
+    @pytest.mark.parametrize("scale_cost", [1.0, "mean", "max_cost"])
+    @pytest.mark.parametrize("flavour", FLAVOURS)
+    def test_sparsify_matches_transport_matrix(
+        self, flavour: str, scale_cost: Union[float, str], batch_size: int
+    ) -> None:
+        # guards the two traps: a `geom.subset`-derived `inv_scale_cost` (wrong under `scale_cost='mean'`)
+        # and `GWOutput`'s `_rescale_factor`
+        out = self._output(flavour, scale_cost)
+        mso = out.sparsify(mode="mass", value=1.0, max_k=None, batch_size=batch_size)
+        np.testing.assert_allclose(
+            mso.transport_matrix.toarray(), np.asarray(out.transport_matrix), rtol=RTOL, atol=1e-6
+        )
+
+    @pytest.mark.parametrize("flavour", FLAVOURS)
+    def test_sparsify_does_not_apply(self, flavour: str, monkeypatch) -> None:
+        out = self._output(flavour)
+
+        def _boom(*_args, **_kwargs):
+            raise AssertionError("`sparsify` must not apply or materialize the transport matrix")
+
+        monkeypatch.setattr(OTTOutput, "push", _boom)
+        monkeypatch.setattr(OTTOutput, "pull", _boom)
+        monkeypatch.setattr(OTTOutput, "transport_matrix", property(_boom))
+        out.sparsify(mode="min_row", batch_size=4)
+
+    @pytest.mark.parametrize("batch_size", [1, 8, 1024])
+    @pytest.mark.parametrize("flavour", FLAVOURS)
+    def test_sparsify_minrow_contract(self, flavour: str, batch_size: int) -> None:
+        out = self._output(flavour, "mean")
+        res = out.sparsify(mode="min_row", batch_size=batch_size).transport_matrix
+        assert np.all(np.diff(res.indptr) >= 1)  # every row keeps at least one entry
         tmap = np.asarray(out.transport_matrix)
-        mso = out.sparsify(mode="mass", value=1.0, max_k=None, batch_size=8)
-        np.testing.assert_allclose(mso.transport_matrix.toarray(), tmap, rtol=RTOL, atol=1e-5)
-
-    def test_rebatch_sets_batch_size_and_preserves_cost(self) -> None:
-        out = self._online_output("mean", 1.0, batch_size=64)
-        reb = out._with_batch_size(8)
-        assert reb is not out
-        assert reb._output.geom._batch_size == 8
         np.testing.assert_allclose(
-            np.asarray(out._output.geom.cost_matrix),
-            np.asarray(reb._output.geom.cost_matrix),
-            rtol=RTOL,
-            atol=1e-5,
+            res.toarray(), np.where(tmap >= tmap.max(axis=1).min(), tmap, 0.0), rtol=RTOL, atol=1e-6
         )
 
+    def test_rows_use_parent_scale_cost(self) -> None:
+        # a `geom.subset`-based materializer re-derives `inv_scale_cost` from the subset and drifts here
+        out = self._output("sinkhorn", "mean")
+        rows = np.asarray(out._row_materializer()(np.arange(3)))
+        np.testing.assert_allclose(rows, np.asarray(out.transport_matrix)[:3], rtol=RTOL, atol=1e-6)
 
-class TestSparsifyNoRebatch:
-    """Rebatch is a no-op when there is no online cost to retune; sparsify still works."""
-
-    @staticmethod
-    def _xy(seed: int = 0) -> Tuple[jnp.ndarray, jnp.ndarray]:
-        rng = np.random.RandomState(seed)
-        return jnp.asarray(rng.randn(40, 4)), jnp.asarray(rng.randn(50, 4))
-
-    def test_offline_geometry_no_rebatch(self) -> None:
-        x, y = self._xy()
-        out = OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, epsilon=0.1))))  # offline (batch_size=None)
-        assert out._with_batch_size(8) is out
-
-    def test_median_scale_cost_no_rebatch(self) -> None:
-        x, y = self._xy()
-        out = OTTOutput(Sinkhorn()(LinearProblem(PointCloud(x, y, epsilon=0.1, scale_cost="median"))))
-        assert out._with_batch_size(8) is out
-
-    def test_low_rank_no_rebatch(self) -> None:
-        x, y = self._xy()
-        out = OTTOutput(LRSinkhorn(rank=3)(LinearProblem(PointCloud(x, y, epsilon=0.1))))
-        assert out._with_batch_size(8) is out
-        mso = out.sparsify(mode="mass", value=1.0, max_k=None, batch_size=8)
+    def test_gw_rescale_factor(self) -> None:
+        out = self._output("gw")
+        forced = OTTOutput(out._output.set(old_transport_mass=4.0 * float(out._output.linear_state.transport_mass)))
+        np.testing.assert_allclose(float(forced._output._rescale_factor), 2.0, rtol=1e-5, atol=1e-5)
+        mso = forced.sparsify(mode="mass", value=1.0, max_k=None, batch_size=8)
         np.testing.assert_allclose(
-            mso.transport_matrix.toarray(), np.asarray(out.transport_matrix), rtol=RTOL, atol=1e-4
+            mso.transport_matrix.toarray(), np.asarray(forced.transport_matrix), rtol=RTOL, atol=1e-6
         )
-
-    def test_gw_no_rebatch(self) -> None:
-        x, y = self._xy()
-        prob = QuadraticProblem(PointCloud(x, epsilon=0.1), PointCloud(y, epsilon=0.1))
-        out = OTTOutput(GromovWasserstein(epsilon=0.1, linear_solver=Sinkhorn())(prob))
-        assert out._with_batch_size(8) is out
