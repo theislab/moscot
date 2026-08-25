@@ -14,10 +14,6 @@ from moscot._types import ArrayLike, Device_t, DTypeLike
 
 __all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput"]
 
-#: Materializes rows ``ixs`` of a transport matrix as a dense array of shape ``[len(ixs), m]``.
-RowMaterializer = Callable[[np.ndarray], ArrayLike]
-
-
 def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) -> sp.csr_matrix:
     """Keep, per row, the smallest set of entries capturing ``value`` of the row mass.
 
@@ -257,25 +253,18 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
         return op
 
-    def _row_materializer(self) -> RowMaterializer:
-        """Build a callable materializing rows of the :attr:`transport_matrix`.
-
-        The callable maps row indices to a dense ``[len(ixs), m]`` array. It is built once per
-        :meth:`sparsify` call, so subclasses can hoist per-output work (e.g. resolving a geometry)
-        out of the block loop.
+    def _materialize_rows(self, ixs: np.ndarray) -> ArrayLike:
+        """Materialize rows ``ixs`` of the :attr:`transport_matrix` as a dense ``[len(ixs), m]`` array.
 
         This default pushes indicator columns, which is correct for any output but costs
         ``n * m * len(ixs)`` whenever :meth:`push` materializes a dense tensor - as :mod:`ott`'s
-        log-sum-exp apply does. Subclasses that can slice or recompute rows directly override it.
+        log-sum-exp apply does. Subclasses that can slice or recompute rows directly override it,
+        caching whatever per-output work they need in :attr:`_row_source`.
         """
         n = self.shape[0]
-
-        def materialize(ixs: np.ndarray) -> ArrayLike:
-            x = np.zeros((n, len(ixs)), dtype=float)
-            x[ixs, np.arange(len(ixs))] = 1.0
-            return np.asarray(self.push(x, scale_by_marginals=False)).T
-
-        return materialize
+        x = np.zeros((n, len(ixs)), dtype=float)
+        x[ixs, np.arange(len(ixs))] = 1.0
+        return np.asarray(self.push(x, scale_by_marginals=False)).T
 
     def sparsify(
         self,
@@ -336,7 +325,6 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         Output with sparsified transport matrix.
         """
         n, m = self.shape
-        materialize = self._row_materializer()
         row_blocks = [np.arange(start, min(start + batch_size, n)) for start in range(0, n, batch_size)]
 
         thr: Optional[float] = None
@@ -355,7 +343,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
             rng = np.random.RandomState(seed=seed)
             k = min(n_samples if n_samples is not None else batch_size, n)
             ixs = np.sort(rng.choice(n, size=k, replace=False))
-            sample = np.asarray(materialize(ixs))
+            sample = np.asarray(self._materialize_rows(ixs))
             sample = sample[~_massless_rows(sample)]
             thr = float(np.percentile(sample, value)) if sample.size else np.inf
         elif mode == "min_row":
@@ -364,7 +352,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
             # blocks that produce the values also keeps the two consistent to the last bit.
             thr = np.inf
             for ixs in row_blocks:
-                maxima = np.asarray(materialize(ixs)).max(axis=1)
+                maxima = np.asarray(self._materialize_rows(ixs)).max(axis=1)
                 maxima = maxima[maxima > 0.0]  # see `_massless_rows`
                 if maxima.size:
                     thr = min(thr, float(maxima.min()))
@@ -379,7 +367,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         tmaps_sparse: list[sp.csr_matrix] = []
         n_massless = 0
         for ixs in row_blocks:
-            block = np.asarray(materialize(ixs))
+            block = np.asarray(self._materialize_rows(ixs))
             n_massless += int(_massless_rows(block).sum())
             tmaps_sparse.append(_sparsify_block(block, mode=mode, thr=thr, value=value, max_k=max_k))
         if n_massless:
@@ -470,13 +458,15 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
     def _apply_forward(self, x: ArrayLike) -> ArrayLike:
         return self._apply(x, forward=True)
 
-    def _row_materializer(self) -> RowMaterializer:  # noqa: D102
+    @functools.cached_property
+    def _row_source(self) -> Union[sp.spmatrix, np.ndarray]:
+        """The transport matrix, resolved once: sparse as-is, anything else (e.g. :mod:`jax`) as dense."""
         tmap = self.transport_matrix
-        if sp.issparse(tmap):
-            sparse_tmap = cast(sp.spmatrix, tmap)
-            return lambda ixs: sparse_tmap[ixs].toarray()
-        dense_tmap = np.asarray(tmap)  # e.g. `jax` arrays
-        return lambda ixs: dense_tmap[ixs]
+        return cast(sp.spmatrix, tmap) if sp.issparse(tmap) else np.asarray(tmap)
+
+    def _materialize_rows(self, ixs: np.ndarray) -> ArrayLike:  # noqa: D102
+        rows = self._row_source[ixs]
+        return rows.toarray() if sp.issparse(rows) else rows
 
     @property
     def transport_matrix(self) -> ArrayLike:  # noqa: D102
