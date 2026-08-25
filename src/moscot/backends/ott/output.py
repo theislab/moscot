@@ -1,5 +1,4 @@
-import functools
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
@@ -12,15 +11,15 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from moscot._types import ArrayLike, Device_t
-from moscot.base.output import BaseDiscreteSolverOutput
+from moscot.base.output import (
+    BaseDiscreteSolverOutput,
+    RowMaterializer,
+)
 
 __all__ = ["OTTOutput", "GraphOTTOutput"]
 
-#: Rows ``ixs`` of an :mod:`ott` output's transport matrix, as a ``[len(ixs), m]`` array.
-_RowFn = Callable[[np.ndarray], jnp.ndarray]
 
-
-def _rows_from_potentials(f: jnp.ndarray, g: jnp.ndarray, geom: Any) -> Optional[_RowFn]:
+def _rows_from_potentials(f: jnp.ndarray, g: jnp.ndarray, geom: Any) -> Optional[RowMaterializer]:
     r"""Rows of :math:`\exp((f_i + g_j - C_{ij}) / \varepsilon)`, as :mod:`ott` computes the full matrix.
 
     The parent geometry's resolved :attr:`epsilon` and :attr:`inv_scale_cost` are captured once:
@@ -59,7 +58,7 @@ def _rows_from_potentials(f: jnp.ndarray, g: jnp.ndarray, geom: Any) -> Optional
     return rows
 
 
-def _ott_row_materializer(out: Any) -> Optional[_RowFn]:
+def _ott_row_materializer(out: Any) -> Optional[RowMaterializer]:
     """Materialize rows of an :mod:`ott` output's transport matrix, or :obj:`None` if unsupported."""
     if isinstance(out, (sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein_lr.LRGWOutput)):
         # `T = Q diag(1 / g) R^T`, as in `ott`'s `matrix`; never touches a geometry, which matters
@@ -260,15 +259,9 @@ class OTTOutput(BaseDiscreteSolverOutput):
     def transport_matrix(self) -> ArrayLike:  # noqa: D102
         return self._output.matrix
 
-    @functools.cached_property
-    def _row_source(self) -> Optional[_RowFn]:
-        """Resolved once per output: :obj:`None` when the wrapped output cannot slice rows directly."""
-        return _ott_row_materializer(self._output)
-
-    def _materialize_rows(self, ixs: np.ndarray) -> ArrayLike:  # noqa: D102
-        if self._row_source is None:
-            return super()._materialize_rows(ixs)
-        return self._row_source(ixs)
+    def _row_materializer(self) -> RowMaterializer:  # noqa: D102
+        materialize = _ott_row_materializer(self._output)
+        return super()._row_materializer() if materialize is None else materialize
 
     @property
     def is_linear(self) -> bool:  # noqa: D102
@@ -360,14 +353,14 @@ class GraphOTTOutput(OTTOutput):
         res = self._output.apply(x_expanded.T, axis=1 - forward, lse_mode=False).T
         return res[len(x) :] if forward else res[: -len(x)]
 
-    def _materialize_rows(self, ixs: np.ndarray) -> ArrayLike:
+    def _row_materializer(self) -> RowMaterializer:
         """Materialize rows by pushing indicator columns.
 
         :attr:`shape` is a sub-block of the expanded ``[n + m, n + m]`` graph problem, so the wrapped
         output's potentials do not index this output's rows. Pushing is cheap here anyway: applying a
         (sparse) graph kernel costs ``nnz`` per column, not ``n * m``.
         """
-        return BaseDiscreteSolverOutput._materialize_rows(self, ixs)
+        return BaseDiscreteSolverOutput._row_materializer(self)
 
     def to(self, device: Optional[Device_t] = None) -> "GraphOTTOutput":  # noqa: D102
         if device is None:

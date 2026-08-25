@@ -507,7 +507,7 @@ class TestSparsifyRows:
     def test_rows_use_parent_scale_cost(self) -> None:
         # a `geom.subset`-based materializer re-derives `inv_scale_cost` from the subset and drifts here
         out = self._output("sinkhorn", "mean")
-        rows = np.asarray(out._materialize_rows(np.arange(3)))
+        rows = np.asarray(out._row_materializer()(np.arange(3)))
         np.testing.assert_allclose(rows, np.asarray(out.transport_matrix)[:3], rtol=RTOL, atol=1e-6)
 
     def test_gw_rescale_factor(self) -> None:
