@@ -285,7 +285,7 @@ class AnalysisMixin(Generic[K, B], AbstractPushPullAdata, AbstractSolutionsProbl
                         key_added=None,
                     )
                     v = np.array(tm_batch.argmax(0))
-                    out.extend(source_df[annotation_label][v[i]] for i in range(len(v)))
+                    out.extend(source_df[annotation_label].iloc[v[i]] for i in range(len(v)))
 
             else:
                 target_df = _get_df_cell_transition(
@@ -309,7 +309,7 @@ class AnalysisMixin(Generic[K, B], AbstractPushPullAdata, AbstractSolutionsProbl
                         key_added=None,
                     )
                     v = np.array(tm_batch.argmax(0))
-                    out.extend(target_df[annotation_label][v[i]] for i in range(len(v)))
+                    out.extend(target_df[annotation_label].iloc[v[i]] for i in range(len(v)))
             categories = pd.Categorical(out)
             return pd.DataFrame(categories, columns=[annotation_label])
         raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
