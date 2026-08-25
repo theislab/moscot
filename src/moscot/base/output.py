@@ -14,6 +14,7 @@ from moscot._types import ArrayLike, Device_t, DTypeLike
 
 __all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput"]
 
+
 def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) -> sp.csr_matrix:
     """Keep, per row, the smallest set of entries capturing ``value`` of the row mass.
 
