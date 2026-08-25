@@ -9,6 +9,7 @@ import pandas as pd
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear import solve as sinkhorn
 
+import anndata as ad
 import scanpy as sc
 from anndata import AnnData
 
@@ -205,7 +206,7 @@ class TestOTProblem:
         new_obs_names = [name + "_src" for name in adata_x.obs_names]
         adata_x.obs_names = new_obs_names
 
-        adata_concat = adata_x.concatenate(adata_y, index_unique=None)
+        adata_concat = ad.concat([adata_x, adata_y], index_unique=None)
         sc.pp.neighbors(adata_concat, n_neighbors=15)
         graph_to_set = pd.DataFrame(
             index=adata_concat.obs_names,
@@ -323,7 +324,7 @@ class TestOTProblem:
         new_obs_names = [name + "_src" for name in adata_x.obs_names]
         adata_x.obs_names = new_obs_names
 
-        adata_concat = adata_x.concatenate(adata_y, index_unique=None)
+        adata_concat = ad.concat([adata_x, adata_y], index_unique=None)
         sc.pp.neighbors(adata_concat, n_neighbors=5)
         graph_to_set = pd.DataFrame(
             index=adata_concat.obs_names,
