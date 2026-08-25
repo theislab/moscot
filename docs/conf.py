@@ -172,6 +172,9 @@ linkcheck_ignore = [
     r"https://doi.org/10.3390/a13090212",
     r"https://www.mdpi.com/1999-4893/13/9/212",
     r"https://pubmed\.ncbi\.nlm\.nih\.gov/.*",
+    # 404 Client Error (page moved upstream; linked from a tutorial in the `docs/notebooks` submodule)
+    r"https://muon\.readthedocs\.io/en/latest/api/generated/muon\.atac\.tl\.lsi\.html",
+    r"https://openproblems\.bio/competitions/neurips_2021_docs/data/dataset\.html",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
