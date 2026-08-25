@@ -49,7 +49,7 @@ def mosta(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -86,7 +86,7 @@ def hspc(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -125,7 +125,7 @@ def drosophila(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -169,7 +169,7 @@ def c_elegans(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -207,7 +207,7 @@ def zebrafish(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -250,7 +250,7 @@ def bone_marrow(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -345,7 +345,7 @@ def tedsim(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -378,7 +378,7 @@ def sciplex(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
@@ -408,7 +408,7 @@ def sim_align(
     force_download
         Whether to force-download the data.
     kwargs
-        Keyword arguments for :func:`scanpy.read`.
+        Keyword arguments for :func:`~anndata.io.read_h5ad`.
 
     Returns
     -------
