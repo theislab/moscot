@@ -17,8 +17,7 @@ import pytest
 pytestmark = pytest.mark.memory
 
 N = 2048
-_CHILD = textwrap.dedent(
-    """
+_CHILD = textwrap.dedent("""
     import resource, sys
     import numpy as np, jax.numpy as jnp
     from ott.geometry.pointcloud import PointCloud
@@ -39,8 +38,7 @@ _CHILD = textwrap.dedent(
     # `threshold` with a huge value keeps nothing, so only the transient blocks are measured
     out.sparsify(mode="threshold", value=1e9, batch_size=batch_size)
     print(peak() - before)
-    """
-)
+    """)
 
 
 def _peak_delta_bytes(batch_size: int, *, low_rank: bool = False, n: int = N) -> int:
