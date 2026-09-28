@@ -252,7 +252,7 @@ class TemporalProblem(
         """
         if self.problem_kind == "linear":
             kwargs["lse_mode"] = lse_mode
-        return super().solve(  # type:ignore[return-value]
+        return super().solve(  # type: ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
