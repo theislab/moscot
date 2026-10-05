@@ -181,7 +181,7 @@ class BaseProblem(abc.ABC, metaclass=CombinedMeta):
                     else np.ones((adata.n_obs,), dtype=float)
                 )
             else:
-                sset = subset if isinstance(subset, list) else [subset]  # type:ignore[list-item]
+                sset = subset if isinstance(subset, list) else [subset]  # type: ignore[list-item]
                 data = np.asarray(adata.obs[data].isin(sset), dtype=float)
         else:
             data = np.asarray(data, dtype=float)
