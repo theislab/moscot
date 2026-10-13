@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import pytest
 
@@ -128,6 +128,24 @@ class TestBaseDiscreteSolverOutput:
         res1 = output.sparsify(mode="mass", value=0.99, max_k=1, batch_size=4).transport_matrix
         assert np.all(np.diff(res1.indptr) <= 1)
         np.testing.assert_array_equal(res1.toarray().argmax(axis=1), tmap.argmax(axis=1))
+
+    @pytest.mark.parametrize("value", [0.3, 0.9, 1.0])
+    @pytest.mark.parametrize("max_k", [1, 5, 40, 103, None])
+    def test_sparsify_mass_matches_reference(self, value: float, max_k: Optional[int]) -> None:
+        # per row, the largest entries until `value` of the row mass is reached, at most `max_k`
+        rng = np.random.RandomState(0)
+        tmap = rng.rand(37, 103) ** 8  # peaked rows, like a transport matrix
+        tmap[5] = 0.0
+        expected = np.zeros_like(tmap)
+        for i, row in enumerate(tmap):
+            if row.sum() == 0.0:
+                continue
+            order = np.argsort(row)[::-1]
+            k = np.searchsorted(np.cumsum(row[order]), value * row.sum()) + 1 if value < 1.0 else len(row)
+            k = min(k, max_k or len(row))
+            expected[i, order[:k]] = row[order[:k]]
+        res = MockSolverOutput(tmap).sparsify(mode="mass", value=value, max_k=max_k, batch_size=8).transport_matrix
+        np.testing.assert_array_equal(res.toarray(), expected)
 
     def test_sparsify_mass_empty_rows(self) -> None:
         rng = np.random.RandomState(0)
