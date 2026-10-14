@@ -73,13 +73,8 @@ def _massless_rows(rows: np.ndarray) -> np.ndarray:
     return ~(rows.max(axis=1) > 0.0)
 
 
-def _sparsify_block(
-    rows: np.ndarray, *, mode: str, thr: Optional[float], value: Optional[float], max_k: Optional[int]
-) -> sp.csr_matrix:
-    """Apply the sparsification criterion to a block of transport-matrix rows."""
-    if mode == "mass":
-        assert value is not None  # validated in `sparsify`
-        return _mass_select_block(rows, value=value, max_k=max_k)
+def _threshold_block(rows: np.ndarray, *, thr: float) -> sp.csr_matrix:
+    """Set the entries of a block of transport-matrix rows below ``thr`` to :math:`0`."""
     rows = np.array(rows)  # writable copy
     rows[rows < thr] = 0.0
     return sp.csr_matrix(rows)
@@ -286,6 +281,15 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
         return materialize
 
+    def _mass_select(self, rows: ArrayLike, *, value: float, max_k: Optional[int]) -> tuple[sp.csr_matrix, int]:
+        """Apply ``mode = 'mass'`` to a block of rows from :meth:`_row_materializer`.
+
+        Returns the sparsified block and its number of rows carrying no mass. Outputs whose rows live
+        on an accelerator override this to select there and copy only the kept entries to the host.
+        """
+        rows = np.asarray(rows)
+        return _mass_select_block(rows, value=value, max_k=max_k), int(_massless_rows(rows).sum())
+
     def sparsify(
         self,
         mode: Literal["threshold", "percentile", "min_row", "mass"],
@@ -304,6 +308,8 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         :term:`Gromov-Wasserstein`/:term:`fused Gromov-Wasserstein`, their :term:`low-rank` counterparts,
         and already materialized matrices - never hold more than ``[batch_size, m]`` at a time. Other
         outputs fall back to pushing indicator columns, whose cost depends on the output's :meth:`push`.
+        For :mod:`ott` outputs, ``mode = 'mass'`` with ``max_k`` selects the entries on the device holding
+        the rows and copies only ``[batch_size, max_k]`` of each block to the host.
 
         Rows carrying no mass keep no entries and take no part in choosing a threshold, whichever
         ``mode`` is used - no threshold can make them non-empty, and letting them take part would
@@ -388,9 +394,15 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         tmaps_sparse: list[sp.csr_matrix] = []
         n_massless = 0
         for ixs in row_blocks:
-            block = np.asarray(materialize(ixs))
-            n_massless += int(_massless_rows(block).sum())
-            tmaps_sparse.append(_sparsify_block(block, mode=mode, thr=thr, value=value, max_k=max_k))
+            if mode == "mass":
+                assert value is not None  # validated above
+                block, n_empty = self._mass_select(materialize(ixs), value=value, max_k=max_k)
+            else:
+                assert thr is not None
+                rows = np.asarray(materialize(ixs))
+                block, n_empty = _threshold_block(rows, thr=thr), int(_massless_rows(rows).sum())
+            n_massless += n_empty
+            tmaps_sparse.append(block)
         if n_massless:
             logger.warning(
                 f"`{n_massless}` row(s) of the transport matrix carry no mass and are left empty; "

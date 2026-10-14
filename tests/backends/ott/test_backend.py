@@ -22,7 +22,7 @@ from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
 from moscot.backends.ott._utils import InitializerResolver, alpha_to_fused_penalty
 from moscot.backends.ott.output import OTTOutput
-from moscot.base.output import BaseDiscreteSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput, _mass_select_block
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Geom_t
@@ -503,6 +503,24 @@ class TestSparsifyRows:
         np.testing.assert_allclose(
             res.toarray(), np.where(tmap >= tmap.max(axis=1).min(), tmap, 0.0), rtol=RTOL, atol=1e-6
         )
+
+    @pytest.mark.parametrize("batch_size", [1, 8, 1024])
+    @pytest.mark.parametrize("value", [0.5, 0.9, 1.0])
+    @pytest.mark.parametrize("flavour", FLAVOURS)
+    def test_mass_on_device_matches_host(self, flavour: str, value: float, batch_size: int) -> None:
+        # with `max_k`, the entries are selected on the device; the host selection is the reference
+        out = self._output(flavour, "mean")
+        res = out.sparsify(mode="mass", value=value, max_k=7, batch_size=batch_size).transport_matrix
+        expected = _mass_select_block(np.asarray(out.transport_matrix), value=value, max_k=7)
+        np.testing.assert_array_equal(np.diff(res.indptr), np.diff(expected.indptr))
+        for i in range(res.shape[0]):  # tied entries (e.g. of low-rank rows) may be kept at other columns
+            np.testing.assert_allclose(np.sort(res[i].data), np.sort(expected[i].data), rtol=RTOL, atol=1e-6)
+
+    def test_mass_on_device_massless_rows(self) -> None:
+        rows = jnp.asarray(np.r_[np.zeros((1, 5)), np.arange(10.0).reshape(2, 5)], dtype=jnp.float32)
+        res, n_empty = self._output("sinkhorn")._mass_select(rows, value=0.9, max_k=2)
+        assert n_empty == 1
+        np.testing.assert_array_equal(np.diff(res.indptr), [0, 2, 2])
 
     def test_rows_use_parent_scale_cost(self) -> None:
         # a `geom.subset`-based materializer re-derives `inv_scale_cost` from the subset and drifts here
