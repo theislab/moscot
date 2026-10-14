@@ -34,10 +34,17 @@ def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) 
     -------
     Sparsified block as a :class:`~scipy.sparse.csr_matrix` of shape ``[b, m]``.
     """
-    _, m = rows.shape
-    order = np.argsort(rows, axis=1)[:, ::-1]  # descending
-    sorted_vals = np.take_along_axis(rows, order, axis=1)
-    totals = sorted_vals.sum(axis=1, keepdims=True)
+    n, m = rows.shape
+    if max_k is not None and max_k < m:
+        # at most `max_k` entries are kept: sort only the `max_k` largest, not the whole row
+        top = np.argpartition(rows, m - max_k, axis=1)[:, m - max_k :]
+        order = np.take_along_axis(top, np.argsort(np.take_along_axis(rows, top, axis=1), axis=1)[:, ::-1], axis=1)
+        sorted_vals = np.take_along_axis(rows, order, axis=1)
+        totals = rows.sum(axis=1, keepdims=True)
+    else:
+        order = np.argsort(rows, axis=1)[:, ::-1]  # descending
+        sorted_vals = np.take_along_axis(rows, order, axis=1)
+        totals = sorted_vals.sum(axis=1, keepdims=True)
     cum = np.cumsum(sorted_vals, axis=1)
     # `value >= 1` keeps everything (avoids float cumsum vs. sum mismatch -> exact reconstruction).
     target = np.full_like(totals, np.inf) if value >= 1.0 else value * totals
@@ -47,10 +54,12 @@ def _mass_select_block(rows: np.ndarray, *, value: float, max_k: Optional[int]) 
     if max_k is not None:
         k_per_row = np.minimum(k_per_row, max_k)
     k_per_row = np.minimum(k_per_row, m)
-    keep_sorted = np.arange(m)[None, :] < k_per_row[:, None]
-    sel = np.zeros(rows.shape, dtype=bool)
-    np.put_along_axis(sel, order, keep_sorted, axis=1)
-    return sp.csr_matrix(np.where(sel, rows, 0.0))
+    keep_sorted = np.arange(order.shape[1])[None, :] < k_per_row[:, None]
+    row_ix = np.broadcast_to(np.arange(n)[:, None], order.shape)
+    out = sp.csr_matrix((sorted_vals[keep_sorted], (row_ix[keep_sorted], order[keep_sorted])), shape=(n, m))
+    out.eliminate_zeros()
+    out.sort_indices()
+    return out
 
 
 def _massless_rows(rows: np.ndarray) -> np.ndarray:
