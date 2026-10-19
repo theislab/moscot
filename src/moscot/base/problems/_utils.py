@@ -695,7 +695,7 @@ def parallelize(
             ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa: E501
             ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))  # type: ignore
 
-            collections = [collection[ix, :] for ix in filter(len, ixs)]  # type:ignore[call-overload]
+            collections = [collection[ix, :] for ix in filter(len, ixs)]  # type: ignore[call-overload]
     else:
         collections = list(filter(len, np.array_split(collection, n_split)))
 
