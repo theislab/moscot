@@ -53,7 +53,7 @@ def _handle_mapping_joint_attr(
         }
         return xy, xy_callback, xy_callback_kwargs  # type: ignore[return-value]
 
-    if joint_attr.get("tag", None) == "cost_matrix" and (len(joint_attr) == 2 or joint_attr.get("attr") == "obsp"):
+    if joint_attr.get("tag") == "cost_matrix" and (len(joint_attr) == 2 or joint_attr.get("attr") == "obsp"):
         joint_attr.setdefault("cost", "custom")
         joint_attr.setdefault("attr", "obsp")
         xy_callback = "cost-matrix"
@@ -100,9 +100,9 @@ def handle_cost(
         "y": (y or y_callback) and "cost" not in y,
     }
     if isinstance(cost, Mapping):
-        cost_candidates = {k: cost[k] for k, v in cost_candidates.items() if v}  # type:ignore[index,misc]
+        cost_candidates = {k: cost[k] for k, v in cost_candidates.items() if v}  # type: ignore[index,misc]
     elif isinstance(cost, str):
-        cost_candidates = {k: cost for k, v in cost_candidates.items() if v}  # type:ignore[misc]
+        cost_candidates = {k: cost for k, v in cost_candidates.items() if v}  # type: ignore[misc]
     else:
         raise TypeError(f"Expected `cost` to be either `str` or `dict`, found `{type(cost)}`.")
 
@@ -120,9 +120,9 @@ def handle_cost(
             for k, v in items:
                 xy[f"x_{k}"] = xy[f"y_{k}"] = v
         if "x" in cost_candidates:
-            x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
+            x.update(cost_kwargs.get("x", cost_kwargs))  # type: ignore[call-overload]
         if "y" in cost_candidates:
-            y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
+            y.update(cost_kwargs.get("y", cost_kwargs))  # type: ignore[call-overload]
     return xy, x, y
 
 
@@ -199,5 +199,5 @@ def handle_cost_tmp(
         for k, v in items:
             xy[f"xy_{k}"] = xy[f"xy_{k}"] = v
     if xx and cost_kwargs:  # extract cost_kwargs explicit to x-term if possible
-        xx.update(cost_kwargs.get("xx", cost_kwargs))  # type:ignore[call-overload]
+        xx.update(cost_kwargs.get("xx", cost_kwargs))  # type: ignore[call-overload]
     return xy, xx
